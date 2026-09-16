@@ -73,11 +73,14 @@ export function TabBar() {
       frame = 0;
       const y = window.scrollY;
       const dy = y - last;
-      if (Math.abs(dy) < STEP) return;
-      last = y;
       const atEnd =
         y + window.innerHeight >=
         document.documentElement.scrollHeight - END;
+      if (Math.abs(dy) < STEP) {
+        if (atEnd) setAway(false);
+        return;
+      }
+      last = y;
       setAway(dy > 0 && y > KEEP && !atEnd);
     };
     const onScroll = () => {

@@ -706,7 +706,7 @@ build at 360 and 390 before touching anything.
   Deliberately not `.portrait`: a 22px blur, a 14px drop-shadow and a shoulder
   fade are all bigger than the element. What a 36px circle needs is a crop —
   the source is a 512² head-and-shoulders frame, so untouched it reads as a
-  distant figure in a t-shirt. `scale(1.85)` from `50% 18%`, with a ring and
+  distant figure in a t-shirt. `scale(1.3)` from `50% 0`, with a ring and
   fill so the transparent cutout does not float on the bar in either theme.
   Falls back to the monogram when `lib/avatar.ts` returns null, as the rail does.
 - **The reserved band is now the bar's actual footprint** — 65px tall plus its

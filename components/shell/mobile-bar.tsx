@@ -29,6 +29,14 @@ import { VerifiedBadge } from "./verified-badge";
  */
 
 export function MobileBar({ avatarSrc }: { avatarSrc: string | null }) {
+  const monogram = SITE.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
+
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-ground/85 backdrop-blur-md lg:hidden">
       <div className="flex h-14 items-center gap-3 px-5">
@@ -45,7 +53,7 @@ export function MobileBar({ avatarSrc }: { avatarSrc: string | null }) {
               aria-hidden="true"
               className="grid size-9 shrink-0 place-items-center rounded-full bg-accent font-mono text-2xs font-medium tracking-widest text-accent-ink"
             >
-              JLR
+              {monogram}
             </span>
           )}
           <span className="flex min-w-0 items-center gap-1">
