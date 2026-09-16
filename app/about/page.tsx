@@ -4,7 +4,6 @@ import { ArrowUpRight, Download, Mail } from "lucide-react";
 import { SITE } from "@/lib/site";
 import { cvHref } from "@/lib/cv";
 import { ToolIcon } from "@/components/icons/tool-icon";
-import { SocialLinks } from "@/components/shell/social-links";
 import { AboutCard } from "@/components/about/about-card";
 
 export const metadata: Metadata = {
@@ -162,6 +161,11 @@ export default function About() {
           </a>
         </div>
 
+        {/* No socials here (R16). They sat ~280px above the footer's copy on a
+            phone and only 142px above it at 1280 — the shell already carries
+            them once per viewport, and /contact has the full list with a
+            handle and a note per profile. This block is for the two actions a
+            recruiter came for: the CV and the email. */}
         <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-4">
           <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-1.5">
             <span
@@ -172,7 +176,6 @@ export default function About() {
               {SITE.availability}
             </span>
           </p>
-          <SocialLinks />
         </div>
       </section>
     </>

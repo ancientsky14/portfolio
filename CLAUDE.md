@@ -101,6 +101,8 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
 | R12 | Mobile shell — full name, portrait in the bar, one CTA, footer band | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R12" |
 | R13 | Sitemap, the 360px overflow, per-page counts, one LCP dead end | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R13" — deployed and verified live |
 | R14 | Asset weight — LMIS tour 7.4→2.9MB, tool mark −50% | **partial** 2026-09-16: `public/` 13.9→9.7MB. **sentro's tour is 48% blank and needs re-recording** — `UPCOMING-FEATURES.md` "R14" |
+| R15 | /about was clipping 152px of itself; the overflow check that missed it | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R15" |
+| R16 | Socials once per viewport — rail from lg, footer below it | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R16" |
 | R9 | Hardening — budgets, keyboard + contrast pass (OG image done in `UPCOMING-FEATURES.md` Phase 1) | **partial** 2026-09-14: a11y 100, JS/CLS met; LCP 2.2–2.6s, Performance 70–79, real Android unmeasured. R9b profiled it: the floor is Next/React hydration, not site code — `UPCOMING-FEATURES.md` "R9", "R9b" |
 
 ### The shell
@@ -217,6 +219,21 @@ and are **not** a map of the Philippines — see the header comment in
   horizontal padding elsewhere.
 - Type scale and colours come from tokens — no arbitrary Tailwind values like
   `text-[17px]` or `bg-[#111]`.
+- **A `grid` always needs a base `grid-cols`, not only a `sm:`/`lg:`/`xl:` one.**
+  Below that breakpoint the element gets an implicit `auto` track, which may
+  not shrink below its contents' min-content and is free to exceed its
+  container — and with `overflow-hidden` it clips the excess in silence.
+  Reach for `grid-cols-[minmax(0,1fr)]`. This has now caused the same bug
+  twice (R13 `/contact/`, R15 `/about/`, which cut 152px off itself from 360
+  through 1024 for four releases). Related trap: **`truncate` sets
+  `white-space: nowrap`, so the element contributes its *full* width to
+  intrinsic sizing even though it renders ellipsised** — `min-w-0` on the
+  parent lets the flex item shrink but does not undo that.
+- **Checking for overflow, `documentElement.scrollWidth` is not enough.** It
+  cannot see content clipped by an ancestor's `overflow: hidden`, which is
+  exactly how R15 hid from four sweeps. Also compare every grid's summed
+  `grid-template-columns` against its own content box — see
+  `UPCOMING-FEATURES.md` "R15".
 - **The type scale is responsive; a heading takes one class.** The `--text-*`
   tokens step from a 1.18 phone ratio to the 1.26 desktop ratio at 40rem
   (`design/tokens.css`), so `text-2xl` is already 28px on a phone and 36px on
@@ -338,6 +355,13 @@ accent, never brand colours — except the home tools marquee, which Jan asked
 to show each tool in its own colours (2026-09-11): `<ToolIcon brand>`, with
 official marks for Simple Icons' gaps in `public/icons/tools/` (devicon and
 lobehub icons, both MIT).
+
+**The socials appear once per viewport: the rail from lg up, the panel footer
+below it** (`lg:hidden` on the footer's copy, R16). They were also in the
+`/about` hire block, which put two rows 283px apart on a phone and 142px apart
+at 1280 — measured across every page, not eyeballed. `/contact` is the one
+deliberate exception: a card each, with the handle and a note, as the
+destination for "find me here". Don't add a third copy to a page section.
 
 ## Commands
 

@@ -13,6 +13,10 @@ import { SocialLinks } from "./social-links";
  * No nav links (removed 2026-09-16, Jan's call): the rail from lg up and the
  * tab bar below it are both permanently on screen, so a footer list was a
  * second copy of the same NAV. Don't add one back.
+ *
+ * The socials follow the same rule from R16 — they render below lg only,
+ * where the rail is hidden. Keeping them at every width was the one place
+ * this file did not practise what the paragraph above preaches.
  */
 
 export function PanelFooter() {
@@ -40,7 +44,11 @@ export function PanelFooter() {
         </div>
 
         <div className="lg:text-right">
-          <SocialLinks className="lg:justify-end" />
+          {/* Below lg only: the rail is hidden there, so this is the one
+              site-wide place for them. From lg up the rail carries them a few
+              hundred pixels to the left and this was simply a second copy —
+              the same reasoning that removed the nav list (R16). */}
+          <SocialLinks className="lg:hidden" />
 
           <p className="mt-5 font-mono text-2xs uppercase tracking-widest text-text-3">
             © {new Date().getFullYear()} {SITE.name} · Built in the Philippines

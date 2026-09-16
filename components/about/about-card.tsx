@@ -90,7 +90,16 @@ export function AboutCard() {
 
   return (
     <div data-reveal className="frame mt-10 p-2 sm:p-3">
-      <div className="grid overflow-hidden rounded-lg border border-line bg-surface xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+      {/* `grid-cols-[minmax(0,1fr)]` at every width, not only from xl — the
+          same trap as app/contact/page.tsx. With only the xl rule, everything
+          below 1280 got an implicit `auto` track, which may not shrink below
+          its contents' min-content and is free to exceed its container: it
+          resolved to 452px inside a 300px box and `overflow-hidden` cut the
+          other 152px off in silence. What demanded 452 was a role row's proof
+          line — `truncate` sets white-space: nowrap, so that span contributes
+          its whole width to sizing even though it renders ellipsised, and the
+          `min-w-0` on its parent does not undo that (R15). */}
+      <div className="grid grid-cols-[minmax(0,1fr)] overflow-hidden rounded-lg border border-line bg-surface xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
         {/* ── story ───────────────────────────────────────────── */}
         <div className="p-6 sm:p-8 xl:p-10">
           <div className="max-w-2xl">
@@ -112,6 +121,16 @@ export function AboutCard() {
             {ROLES.map((r, i) => {
               const doc = r.slug ? bySlug.get(r.slug) : undefined;
               const proof = doc ? `${doc.title} · ${displayClient(doc)}` : r.note;
+              // The wrap is load-bearing below sm: the tool cluster is
+              // `shrink-0` at ~120px, which in a 252px row left the proof line
+              // 77px — "LMIS · M…". `flex-wrap` alone could never fix that,
+              // because `flex-1` has a 0 basis and so shrinks instead of
+              // wrapping. `basis-full` on the text is what actually pushes it
+              // onto its own full-width line; `order-last` + `ml-auto` keep
+              // the row number up beside the icons rather than stranded on a
+              // line of its own (R15). Visual order only — the DOM order, and
+              // so the reading order, is unchanged, and the whole row is one
+              // link, so there is no focus order to desynchronise.
               const row =
                 "flex flex-wrap items-center gap-x-5 gap-y-3 py-4 sm:flex-nowrap";
               const inner = (
@@ -128,7 +147,7 @@ export function AboutCard() {
                       </span>
                     ))}
                   </span>
-                  <span className="min-w-0 flex-1">
+                  <span className="order-last min-w-0 flex-1 basis-full sm:order-0 sm:basis-0">
                     <span className="block font-display text-base font-bold tracking-tight text-text transition-colors group-hover:text-accent">
                       {r.title}
                     </span>
@@ -138,7 +157,7 @@ export function AboutCard() {
                       </span>
                     ) : null}
                   </span>
-                  <span className="font-mono text-2xs tracking-widest text-text-3">
+                  <span className="ml-auto font-mono text-2xs tracking-widest text-text-3 sm:ml-0">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                 </>

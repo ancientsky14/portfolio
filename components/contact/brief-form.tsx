@@ -338,7 +338,10 @@ export function BriefForm() {
       method="post"
       encType="text/plain"
       onSubmit={onSubmit}
-      className="grid gap-5 sm:grid-cols-2"
+      // Base grid-cols, not only sm: — a breakpoint-only grid-cols leaves an
+      // implicit `auto` track below it that can exceed its container. Here it
+      // ran 30px past the card at 360 (R15).
+      className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2"
     >
       {/* Mode switch — native radios, so it is keyboard-operable for free */}
       <fieldset className="sm:col-span-2">

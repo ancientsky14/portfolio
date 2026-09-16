@@ -962,6 +962,131 @@ tour and the 9.7 KB mark.
 
 ---
 
+## R15 — /about was clipping 152px of itself (2026-09-16)
+
+Jan sent phone screenshots of `/about` with text cut mid-word the whole way
+down: the headline, the paragraph, every role row, the credential chips, the
+figure's status panel.
+
+### The detection hole — the part worth keeping
+
+**R10, R11, R12 and R13 all reported these pages clean. They were wrong, and
+the reason is the check.** Every sweep asked
+`documentElement.scrollWidth > clientWidth`. That question cannot see content
+clipped by an ancestor's `overflow: hidden`: the page does not scroll, so the
+page looks fine. R11 explicitly saw `div.p-6` and `div.max-w-2xl` past the
+right edge on `/about/`, found no page scroll, and wrote them off as "inside a
+horizontally-scrollable or clipped container — not a bug". That call is what
+let this ship through four hardening passes.
+
+**The check to use instead**, which found it in one run: for every element with
+`display: grid`, sum the computed `grid-template-columns` widths plus column
+gaps and compare against that element's own content box. A track wider than
+its box is the defect, scrolling or not. Keep the scrollWidth assertion too —
+it is necessary, just not sufficient.
+
+Across 8 widths × 10 pages it returned exactly two hits, so the fix below is
+the whole problem rather than a sample.
+
+### The cause — the same trap as R13's `/contact/`
+
+`components/about/about-card.tsx` had `grid` with only an
+`xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]`. Below 1280 that leaves an
+implicit `auto` track, which may not shrink below its contents' min-content
+contribution and may exceed its container. It resolved to **452px inside a
+300px box**, and the same element's `overflow-hidden` cut the other 152px off
+in silence. Not phone-only: 152px at 360, 100 at 412, 95 at 640, 63 at 1024,
+clean only at 1280 where the `xl:` rule takes over.
+
+Bisected to the cause rather than guessed — hiding the story column dropped the
+track to 300px, then hiding the second `<li>` dropped it to 302, then hiding
+that row's text span dropped it to 302 again. The driver is the proof line
+`eBudget · Mines and Geosciences Bureau — Regional Office I`: **`truncate` sets
+`white-space: nowrap`, so the span contributes its full 404px to intrinsic
+sizing even though it renders at 228px with an ellipsis.** `min-w-0` on the
+parent lets the flex *item* shrink — it does — but does not reduce what the
+subtree contributes to sizing the track. That is the non-obvious half.
+
+Fixed with a base `grid-cols-[minmax(0,1fr)]`, exactly as `/contact/` was.
+`components/contact/brief-form.tsx` had the same trap on the `<form>` element
+itself (+30px at 360) and got the same one-line fix.
+
+### The second-order problem the fix exposed
+
+Removing the clip left the role rows correct but useless: the `shrink-0` tool
+cluster is ~120px, so in a 252px row the proof line got **77px — "LMIS · M…"**.
+The row already carried `flex-wrap … sm:flex-nowrap` for exactly this, and it
+could never work: `flex-1` has a 0 basis, so the text shrinks instead of
+wrapping.
+
+`basis-full` on the text is what actually pushes it to its own full-width line,
+with `order-last` + `ml-auto` keeping the row number beside the icons instead
+of stranded on a line of its own. Proof width 77 → 252px at 360, 304 at 412;
+fully readable rows 0/4 → 2/4 at 360 and 3/4 at 412. Visual order only — DOM
+and reading order unchanged, and the row is a single link so there is no focus
+order to desynchronise. From `sm` up nothing changed (81px rows, as before).
+
+### Deliberately not done
+
+A grep finds 14 grids with only breakpoint-prefixed `grid-cols`
+(`app/lab/page.tsx:97,174`, `components/home/bento.tsx:111,298`,
+`components/work/work-gallery.tsx:286,512`, others). The other twelve measure
+clean at every width tested — nothing in them refuses to shrink. Changing them
+is churn against layouts R10 tuned by measurement. The rule is in CLAUDE.md;
+fix the rest on evidence, not on grep.
+
+### Verified
+
+80 page/width checks (8 widths × 10 pages): **grid tracks exceeding their box
+0, was 2; horizontal scroll 0.** `/about/` at 360 and 412 reads end to end with
+nothing cut. `/about/` at 1280 unchanged. Typecheck and build pass.
+
+---
+
+## R16 — One social row per viewport (2026-09-16)
+
+Jan's phone screenshot of `/about` showed the four profile icons twice, ~280px
+apart. Counting every social row on every page at both widths showed it was
+neither a mobile problem nor an `/about` problem:
+
+| page | 390 before | 1280 before | after (both) |
+|---|---|---|---|
+| `/` | 1 footer | 1 rail | 1 |
+| `/work/`, `/services/`, `/lab/` | 1 footer | **2** rail + footer | 1 |
+| `/about/` | **2**, 283px apart | **3**, and the page block sat **142px** from the footer | 1 |
+| `/contact/` | 2, 688px apart | 3 | 2 — the card list plus one shell copy |
+
+The pair Jan saw on a phone is **tighter on a laptop**, and the rail/footer
+repeat ran site-wide.
+
+`components/shell/panel-footer.tsx` already argued against itself: its header
+says it is "deliberately thin" because "on desktop the rail already carries
+the name, the role line, the availability state, **the socials** and the
+copyright, so repeating all of it here would be the third copy on screen" —
+then rendered `SocialLinks` at every width. R12 removed the footer's nav list
+on precisely that reasoning; the socials were the leftover.
+
+**Changed:** dropped `<SocialLinks />` from the `/about` `#hire` block, and
+gave the footer's copy `lg:hidden`.
+
+The footer's socials must stay below lg — with the rail hidden they are the
+only link to any profile on `/`, `/work`, `/services` and `/lab`. Removing
+them outright would have left three of five pages on a phone with nothing but
+an email address. That was the regression worth watching for, and it is in the
+verification below.
+
+The `#hire` block keeps what it is for: Download CV, "Email me about a role",
+the availability pill. Nothing else moved — the 64px gap under the pill is the
+section's own `py-16`, not a hole where the icons were.
+
+**Verified** at 390, 1024 and 1280 on `/`, `/work/`, `/about/`, `/contact/`,
+`/services/`, `/lab/`: exactly one row everywhere except `/contact/`, whose
+card list sits 435–688px from the shell copy. Footer socials still present at
+390 on `/work/`. No empty containers left in the hire block; its two links
+intact. Typecheck and build pass.
+
+---
+
 ## Budgets to re-check after each phase
 
 From CLAUDE.md: LCP < 2.0 s on 4G mid-range Android · CLS < 0.05 · INP < 200 ms
