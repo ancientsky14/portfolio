@@ -26,7 +26,7 @@ const LINES = ["Software that ships.", "And keeps running."];
 
 export function Hero() {
   return (
-    <section className="relative isolate overflow-hidden px-5 pb-8 pt-10 sm:px-8 sm:pt-14 lg:px-12 lg:pt-12">
+    <section className="relative isolate overflow-hidden px-5 pb-6 pt-6 sm:px-8 sm:pb-8 sm:pt-14 lg:px-12 lg:pt-12">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 opacity-70 [background:radial-gradient(55%_60%_at_85%_10%,var(--accent-soft),transparent_70%),radial-gradient(40%_50%_at_10%_100%,color-mix(in_oklab,var(--sand)_18%,transparent),transparent_70%)]"
@@ -37,7 +37,7 @@ export function Hero() {
           narrower panel crushed the headline into six lines. The 1100px
           switch lives in `.home-fit__head` (design/tokens.css), not in a
           Tailwind `min-[1100px]:` class: see the note there. */}
-      <div className="home-fit__head flex flex-col gap-6">
+      <div className="home-fit__head flex flex-col gap-4 sm:gap-6">
         <h1 className="home-fit__title min-w-0 font-display text-2xl font-extrabold leading-none tracking-tight text-text sm:text-3xl lg:text-4xl">
           {LINES.map((line) => (
             // Each outer span is the mask the line rises out of. Both are
@@ -74,23 +74,30 @@ export function Hero() {
           >
             Hire me
           </Link>
-          <BookCall className="bg-surface/70 backdrop-blur-sm" />
+          {/* Only on the fitted home; elsewhere it sits with the email
+              below, so a phone's first screen keeps two buttons and reaches
+              the proof (R10). The switch is in design/tokens.css with the
+              rest of the 1100px rules. */}
+          <BookCall className="hero-book--fit bg-surface/70 backdrop-blur-sm" />
         </div>
       </div>
 
-      <p className="home-fit__lede mt-6 max-w-2xl text-lg leading-relaxed text-text-2">
+      <p className="home-fit__lede measure mt-4 text-lg leading-relaxed text-text-2 sm:mt-6">
         {SITE.line} {SITE.sub}
       </p>
 
-      <a
-        href={`mailto:${SITE.email}`}
-        className="home-fit__mail mt-5 inline-flex items-center gap-2 text-sm text-text-2 transition-colors hover:text-accent"
-      >
-        <Mail size={15} strokeWidth={1.75} aria-hidden="true" />
-        <span className="underline decoration-line-2 underline-offset-4">
-          {SITE.email}
-        </span>
-      </a>
+      <div className="home-fit__mail mt-4 flex flex-wrap items-center gap-x-5 gap-y-3 sm:mt-5">
+        <a
+          href={`mailto:${SITE.email}`}
+          className="inline-flex min-h-11 items-center gap-2 text-sm text-text-2 transition-colors hover:text-accent"
+        >
+          <Mail size={15} strokeWidth={1.75} aria-hidden="true" />
+          <span className="underline decoration-line-2 underline-offset-4">
+            {SITE.email}
+          </span>
+        </a>
+        <BookCall className="hero-book--flow bg-surface/70 py-2.5 backdrop-blur-sm" />
+      </div>
     </section>
   );
 }

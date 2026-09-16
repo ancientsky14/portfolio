@@ -54,7 +54,9 @@ export function Rail({ avatarSrc }: { avatarSrc: string | null }) {
     <aside className="no-scrollbar hidden h-full w-80 shrink-0 overflow-y-auto lg:flex">
       <div
         data-intro="rail"
-        className="flex min-h-full w-full flex-col px-7 pb-7 pt-[clamp(28px,4vh,52px)]"
+        // pb clears the fixed accessibility button in the corner: at 1100×600
+        // it sat on top of a nav row when the rail scrolled (R10).
+        className="flex min-h-full w-full flex-col px-7 pb-20 pt-[clamp(28px,4vh,52px)]"
       >
         {/* identity */}
         <div className="flex flex-col items-center text-center">

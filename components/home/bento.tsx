@@ -78,7 +78,7 @@ function Card({
             {title}
           </h3>
         </div>
-        <p className="home-fit__card-desc mt-3 text-sm leading-relaxed text-text-2">
+        <p className="home-fit__card-desc measure mt-3 text-sm leading-relaxed text-text-2">
           {blurb}
         </p>
         {children ? (
@@ -163,7 +163,9 @@ export function Bento() {
             {/* Titles only: the card is one column wide, and the issuer and
                 date (c.meta) do not fit beside them. They stay as the row's
                 tooltip, and /about carries them in full. */}
-            <ul className="home-fit__list flex flex-col gap-1.5">
+            {/* data-fit: how many rows survive on the fitted home, where a
+                card has ~80px for them (design/tokens.css, R10). */}
+            <ul data-fit="2" className="home-fit__list flex flex-col gap-1.5">
               {confirmedCredentials()
                 .slice(0, 3)
                 .map((c) => {
@@ -194,7 +196,7 @@ export function Bento() {
             title="Shipped"
             blurb="Where each one stands today."
           >
-            <ul className="home-fit__list flex flex-col gap-2">
+            <ul data-fit="3" className="home-fit__list flex flex-col gap-2">
               {work.map((w) => {
                 const live = w.status ? !/develop|testing/i.test(w.status) : false;
                 return (

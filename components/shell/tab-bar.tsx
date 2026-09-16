@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { A11Y_EVENT, prefersReduced } from "@/lib/a11y";
 import { NAV } from "./nav-links";
 
 /**
@@ -14,16 +16,83 @@ import { NAV } from "./nav-links";
  * indicator (safe-area inset), and the panel content carries bottom padding
  * so it never covers the footer. Hidden from lg up, where the rail does the
  * same job.
+ *
+ * It slides away while the reader scrolls down and comes back the moment
+ * they scroll up or reach the top: R10 (2026-09-16) measured it sitting on
+ * top of content at rest — 15% of the first work card, 52% of a tools row on
+ * /about — and /services is 6,000px of reading on a phone. Under reduced
+ * motion it never moves; a control that disappears is worse than one that
+ * overlaps for anyone who cannot track the movement.
  */
+
+/** Ignore the scroll jitter a finger makes while reading. */
+const STEP = 6;
+/** Stay put near the top, where the bar covers nothing anyway. */
+const KEEP = 120;
 
 export function TabBar() {
   const pathname = usePathname();
+  const [away, setAway] = useState(false);
+
+  // A form field under the bar is worse than a card under it: on /contact the
+  // bar sat on top of the company field, and on a phone the keyboard pushes
+  // more of the form under it. While a field has focus, the bar steps aside —
+  // this one applies under reduced motion too, since it removes an obstacle
+  // rather than decorating anything.
+  useEffect(() => {
+    const isField = (el: EventTarget | null) =>
+      el instanceof HTMLElement &&
+      !!el.closest("#main") &&
+      /^(input|textarea|select)$/i.test(el.tagName);
+    const onIn = (e: FocusEvent) => {
+      if (isField(e.target)) setAway(true);
+    };
+    const onOut = (e: FocusEvent) => {
+      if (isField(e.target) && !isField(e.relatedTarget)) setAway(false);
+    };
+    document.addEventListener("focusin", onIn);
+    document.addEventListener("focusout", onOut);
+    return () => {
+      document.removeEventListener("focusin", onIn);
+      document.removeEventListener("focusout", onOut);
+    };
+  }, []);
+
+  useEffect(() => {
+    setAway(false);
+    if (prefersReduced()) return;
+
+    let last = window.scrollY;
+    let frame = 0;
+    const read = () => {
+      frame = 0;
+      const y = window.scrollY;
+      const dy = y - last;
+      if (Math.abs(dy) < STEP) return;
+      last = y;
+      setAway(dy > 0 && y > KEEP);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(read);
+    };
+    const onA11y = () => {
+      if (prefersReduced()) setAway(false);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener(A11Y_EVENT, onA11y);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener(A11Y_EVENT, onA11y);
+      cancelAnimationFrame(frame);
+    };
+  }, [pathname]);
 
   return (
     <nav
       aria-label="Main"
       data-intro="tabbar"
-      className="fixed inset-x-3 bottom-3 z-40 lg:hidden"
+      className={cn("tabbar fixed inset-x-3 bottom-3 z-40 lg:hidden", away && "tabbar--away")}
       style={{ marginBottom: "env(safe-area-inset-bottom)" }}
     >
       <ul className="mx-auto flex max-w-md items-stretch gap-1 rounded-full border border-line bg-surface/90 p-1.5 shadow-soft backdrop-blur-md">

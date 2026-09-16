@@ -27,9 +27,10 @@ export function SearchButton({ variant }: { variant: "rail" | "bar" }) {
         type="button"
         onClick={open}
         aria-label="Search the site"
-        className="grid size-8 place-items-center rounded-full border border-line text-text-3 transition-colors hover:border-accent hover:text-accent"
+        // size-10: 32px was under the 40px a thumb needs (R10, mobile bar).
+        className="grid size-10 shrink-0 place-items-center rounded-full border border-line text-text-3 transition-colors hover:border-accent hover:text-accent"
       >
-        <Search size={15} strokeWidth={1.75} aria-hidden="true" />
+        <Search size={16} strokeWidth={1.75} aria-hidden="true" />
       </button>
     );
   }

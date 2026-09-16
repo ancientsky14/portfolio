@@ -96,6 +96,7 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
 | R6 | Pages export, socials + icons, MDX bodies, brief form, re-tokenized registry pieces | **done** |
 | R7 | Repositioning — product developer, eBudget added, drafts corrected | **done** |
 | R8 | Reference shell + components — panel scroll, work viewer, tab bar, intro | **done** |
+| R10 | Layout pass for phones and laptops — nothing clipped, the tab bar steps aside, 40px touch targets, capped measure | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R10" |
 | R9 | Hardening — budgets, keyboard + contrast pass (OG image done in `UPCOMING-FEATURES.md` Phase 1) | **partial** 2026-09-14: a11y 100, JS/CLS met; LCP 2.2–2.6s, Performance 70–79, real Android unmeasured. R9b profiled it: the floor is Next/React hydration, not site code — `UPCOMING-FEATURES.md` "R9", "R9b" |
 
 ### The shell
@@ -107,11 +108,23 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
   scroll — Lenis, every ScrollTrigger, the hero canvas — must get its
   scroller from `panelScroller()` in `lib/scroller.ts`, never assume the
   window. Route changes reset the panel's scroll in `page-motion.tsx`.
-- **The home page does not scroll from 1100px wide and 600px tall** (`.home-fit` in
+- **The home page does not scroll from 1100px wide and 780px tall** (`.home-fit` in
   `design/tokens.css`): head, tools strip and bento fit the window, the
   bento's two rows split the leftover height, and the panel is pinned via
   `:has(.home-fit)` — no JS. Its footer is hidden there. Anything added to
   the home page must fit that grid or it will be clipped.
+  The height floor was 600px until R10 (2026-09-16), when measuring showed
+  the bento cutting 30–231px of content on every laptop — a sliced "SENTRO",
+  a chopped client card. Two rules now hold: **a fitted card shows whole rows
+  and hides the rest** (`data-fit` on the lists, counts in tokens.css), and
+  below 780px tall the fitted layout is off and the page scrolls with every
+  card complete. Adding a row to a bento card means re-running the sweep in
+  `UPCOMING-FEATURES.md` "R10", not eyeballing it.
+- The mobile tab bar slides away while the reader scrolls down, returns on
+  scroll up or at the top, and steps aside while a form field has focus
+  (R10) — it used to sit on top of content at rest. It never moves under
+  reduced motion: a nav that vanishes is worse than one that overlaps for
+  anyone who cannot track the movement.
 - Reference components (2026-09-11, Jan's request): the `/work` gallery with
   its card → modal viewer, the mobile tab bar, and the first-visit boot
   intro (`html.is-intro`, set by the boot script). The intro overrides the

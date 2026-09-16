@@ -39,7 +39,8 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label="Switch between light and dark theme"
       aria-pressed={dark ?? false}
       className={cn(
-        "grid size-8 place-items-center rounded-full border border-line text-text-3 transition-colors hover:border-accent hover:text-accent",
+        // size-10: 32px was under the 40px a thumb needs (R10, mobile bar).
+        "grid size-10 shrink-0 place-items-center rounded-full border border-line text-text-3 transition-colors hover:border-accent hover:text-accent",
         className,
       )}
     >

@@ -156,7 +156,7 @@ export function AboutCard() {
               );
             })}
           </ol>
-          <p className="mt-3 text-sm text-text-3">
+          <p className="measure mt-3 text-sm text-text-3">
             Nothing here is aspirational. Every tool is in a project I have
             shipped or am building, or in how I work every day.
           </p>

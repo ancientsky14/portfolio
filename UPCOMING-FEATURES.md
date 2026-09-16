@@ -542,6 +542,73 @@ same page; `hreflang` present; English pages unchanged.
 
 ---
 
+## R10 — Layout pass for phones and laptops (2026-09-16)
+
+Jan asked for a better layout on phones and laptops. Measured first, at six
+viewport sizes, on every main page: content clipped by a parent, controls
+covered by a floating overlay, tap-target sizes, characters per line, and
+what sits above the fold.
+
+**What was wrong**
+
+- **Laptops: the home page cut its own content.** The fitted layout applied
+  from 1100×600, but the bento no longer fit at any height up to 1200px. At
+  1280×800 each card had 193px and needed 220–420px: "Built for" 231px over
+  (three client cards at 114px), the Work list 84px, Services 60px, Shipped
+  33px, About 30px. On screen that read as a sliced "SENTRO" and a chopped
+  client card.
+- **Phones:** three buttons, the intro line and the email filled the first
+  screen; the tools strip and the first proof card were ~1.5 screens down.
+  The floating tab bar sat on content at rest (15% of a work card, 52% of a
+  tools row on /about, and a form field on /contact). Its search and theme
+  buttons were 29×32.
+- **Both:** the home lede ran 96 characters a line at 1280, /about 89.
+
+**What changed**
+
+- **Fitted cards show whole rows and hide the rest.** Counts live in
+  `design/tokens.css` and come from `data-fit` on each list
+  (`components/home/bento.tsx`), because rows differ in height: Shipped's
+  pills are one line, About's credentials wrap to two. Work's four products
+  now sit in a 2×2 grid with the platform under the name — side by side they
+  collided in half a column. "Built for" became one line per client instead
+  of a stacked card. On the shortest fitted window (≤816px tall) Shipped
+  shows two pills, since the third carries "In development" and wraps.
+- **The fitted layout needs 780px of height**, not 600. Below that the cards
+  fall to ~130px with 18–53px for their content, so the page scrolls instead
+  and every card is whole. A 1366×768 laptop now scrolls — which is the
+  honest outcome.
+- **The "Signed auto-updates" badge** overflowed its card by 17px at
+  1280×800 (a 48px key beside a 147px badge in 167px): both shrink now.
+- **Phones:** two buttons on the fold, the booking button moved down beside
+  the email (one node each, switched in tokens.css, never both), tighter
+  hero spacing. The tools strip and the first card now reach the fold.
+- **The tab bar** hides while scrolling down, returns on scroll up or at the
+  top, and steps aside while a form field has focus. Pinned under reduced
+  motion.
+- **Touch and reading:** the mobile bar's search and theme buttons are 40×40
+  (`shrink-0`, or a narrow phone squeezed them to 35px); a `measure` utility
+  (62ch) caps the long paragraphs; the rail gained bottom padding so the
+  floating accessibility button can never sit on a nav row.
+
+**Verified** at 390×844, 412×915, 820×1180, 1280×800, 1440×832, 1680×1050 on
+`/`, `/work/`, `/services/`, `/about/`, `/contact/`: zero clipped content,
+no line over 85 characters, every shell control ≥ 40px, the first bento card
+above the fold on a phone, the fitted home not scrolling above 780px and
+scrolling cleanly below it. axe 0 violations in both themes; the keyboard
+walk and reduced-motion end states unchanged; the tab bar visible and still
+under reduced motion; Lighthouse with real throttling `/` 72 and `/contact/`
+80 with CLS ≤ 0.003 — the same band as R9b.
+
+**Still true, and accepted:** the tab bar covers part of a card at rest on a
+phone, which is what a floating bar does; scrolling or focusing a field
+moves it. The scripts (`uxaudit.mjs`, `fitsweep.mjs`, `cardcut.mjs`) live in
+a session scratchpad — rebuild them from this description: walk every
+element with hidden overflow and compare `scrollHeight` to `clientHeight`,
+ignoring `.sr-only`.
+
+---
+
 ## Budgets to re-check after each phase
 
 From CLAUDE.md: LCP < 2.0 s on 4G mid-range Android · CLS < 0.05 · INP < 200 ms

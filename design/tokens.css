@@ -39,6 +39,14 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Reading measure. Body text past ~75 characters a line is measurably
+   harder to track back to the next line; R10 (2026-09-16) found the home
+   lede at 96 and the /services steps at 92 on a 1280px screen. Put this on
+   a paragraph rather than inventing a max-w-[..] each time. */
+@utility measure {
+  max-width: 62ch;
+}
+
 /* For a container that scrolls but should never show a scrollbar doing it —
    the rail, when it is taller than the window. */
 @utility no-scrollbar {
@@ -646,10 +654,13 @@ html.is-intro [data-intro="tabbar"] {
 
    Unlayered on purpose — it has to win over the Tailwind utilities on the
    same elements, which live in a cascade layer. Below 1100px none of this
-   applies and home scrolls like any page — nor below 600px tall (a
-   landscape tablet, a squat browser window), where a fitted bento would be
-   slivers; there the page scrolls instead. */
-@media (min-width: 68.75rem) and (min-height: 37.5rem) {
+   applies and home scrolls like any page — nor below **780px tall**, where
+   the cards fall to ~130px and leave 18–53px for their content; there the
+   page scrolls instead and every card is whole. That floor was 600px until
+   R10 (2026-09-16) measured what it cost: at 640px tall four of six cards
+   were cutting their lists. Re-measure with the sweep in the R10 notes
+   before lowering it again. */
+@media (min-width: 68.75rem) and (min-height: 48.75rem) {
   .panel-scroller:has(.home-fit) {
     overflow: hidden;
   }
@@ -700,6 +711,11 @@ html.is-intro [data-intro="tabbar"] {
   }
   .home-fit__mail {
     display: none;
+  }
+  /* The booking button belongs in the button row here, and with the email
+     everywhere else (R10) — two nodes, one visible at a time. */
+  .hero-book--fit {
+    display: inline-flex;
   }
 
   /* Every 1100px switch lives in THIS block, never in a Tailwind
@@ -767,6 +783,23 @@ html.is-intro [data-intro="tabbar"] {
     overflow: hidden;
     margin-top: clamp(8px, 1.4vh, 16px);
   }
+}
+
+/* The mobile tab bar slides out of the way while the reader scrolls down
+   (components/shell/tab-bar.tsx). Transform only, one easing, and the class
+   is never applied under reduced motion — the global rule also collapses
+   the transition there, so it could only ever appear and disappear. */
+.tabbar {
+  transition: transform 0.3s var(--ease-out);
+}
+.tabbar--away {
+  transform: translateY(calc(100% + 1.25rem));
+}
+
+/* The hero's booking button: with the email by default, in the button row
+   only on the fitted home (the rule above). Never both. */
+.hero-book--fit {
+  display: none;
 }
 
 /* ── Portrait — the rail's cutout avatar ─────────────────────────
@@ -869,7 +902,7 @@ html.is-intro [data-intro="tabbar"] {
        their visual to the room that is left;
      · lists tighten, and fade where the card cuts them rather than
        stopping on a sliced row. */
-@media (min-width: 68.75rem) and (min-height: 37.5rem) {
+@media (min-width: 68.75rem) and (min-height: 48.75rem) {
   .home-fit__card--row {
     display: grid;
     grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
@@ -940,12 +973,61 @@ html.is-intro [data-intro="tabbar"] {
     height: 66%;
   }
 
-  /* Lists — tighter rows, and a fade where the card cuts them. */
+  /* Lists — tighter rows, and a fade where the card cuts them.
+     The fade is the safety net, not the plan: R10 (2026-09-16) measured the
+     fitted cards cutting 30–231px of content at 1280×800 — SENTRO sliced in
+     half, a client card chopped — so each list now shows whole rows only and
+     hides what does not fit (the rules further down). The card is a door to
+     the page that has all of it. */
   .home-fit__list,
   .home-fit__rows,
   .home-fit__clients {
     -webkit-mask-image: linear-gradient(#000 86%, transparent);
     mask-image: linear-gradient(#000 86%, transparent);
+  }
+
+  /* Work — four products in two columns rather than four sliced rows. Each
+     one stacks its name over its platform: side by side, half a column is
+     not enough and the two collided. */
+  .home-fit__mock ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(2px, 0.6vh, 8px) clamp(8px, 1vw, 16px);
+  }
+  .home-fit__mock ul li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    min-width: 0;
+  }
+  .home-fit__mock ul li > span:first-child {
+    font-size: clamp(13px, 1vw, 20px);
+    line-height: 1.15;
+  }
+  .home-fit__mock ul li > span:last-child {
+    font-size: clamp(8px, 0.55vw, 11px);
+  }
+
+  /* Built for — one line per client (name · client), not a stacked card:
+     three of those need 342px in a 110px box. The stack line and the full
+     client name live on /work. */
+  .home-fit__clients > li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: clamp(3px, 0.7vh, 8px) clamp(8px, 1vh, 14px);
+  }
+  .home-fit__clients > li > p:nth-child(2) {
+    margin-top: 0;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: clamp(11px, 0.75vw, 13px);
+  }
+  .home-fit__clients > li > p:nth-child(3) {
+    display: none;
   }
   .home-fit__list {
     gap: clamp(4px, 0.8vh, 8px);
@@ -954,6 +1036,15 @@ html.is-intro [data-intro="tabbar"] {
     padding-block: clamp(3px, 0.6vh, 6px);
     font-size: clamp(12px, 0.85vw, 14px);
   }
+  /* Shipped keeps three one-line pills where About keeps two wrapping
+     credentials, so its rows give up a few more pixels (R10). */
+  .home-fit__list[data-fit="3"] {
+    gap: clamp(2px, 0.4vh, 5px);
+  }
+  .home-fit__list[data-fit="3"] > li {
+    padding-block: clamp(1px, 0.25vh, 4px);
+    font-size: clamp(11.5px, 0.8vw, 13px);
+  }
   .home-fit__rows > li {
     padding-block: clamp(2px, 0.5vh, 6px);
     font-size: clamp(11.5px, 0.8vw, 14px);
@@ -961,27 +1052,52 @@ html.is-intro [data-intro="tabbar"] {
   .home-fit__clients {
     grid-template-columns: minmax(0, 1fr);
     align-content: start;
-    gap: clamp(6px, 1vh, 12px);
+    gap: clamp(4px, 0.8vh, 10px);
   }
-  .home-fit__clients > li {
-    padding: clamp(8px, 1.3vh, 16px);
+}
+
+/* How many rows a fitted card shows (R10). Whole rows only, and the count
+   is per card because their rows are different heights: Shipped's pills are
+   one line, About's credentials wrap to two. Measured against the room each
+   card actually has at 1280×800, the smallest window that still fits.
+   `data-fit` is set in components/home/bento.tsx. */
+@media (min-width: 68.75rem) and (min-height: 48.75rem) {
+  .home-fit__list[data-fit="2"] > li:nth-child(n + 3),
+  .home-fit__list[data-fit="3"] > li:nth-child(n + 4),
+  .home-fit__rows > li:nth-child(n + 4),
+  .home-fit__clients > li:nth-child(n + 3) {
+    display: none;
+  }
+}
+
+/* The shortest fitted window (≤ 816px tall, a 13" laptop) has room for one
+   pill fewer: the third one carries "In development", which wraps to two
+   lines and would lose its bottom edge. Whole rows only — R10. */
+@media (min-width: 68.75rem) and (min-height: 48.75rem) and (max-height: 51rem) {
+  .home-fit__list[data-fit="3"] > li:nth-child(n + 3) {
+    display: none;
   }
 }
 /* Fitted bento on a short window (≤ 896px tall — a laptop, or 1920 at
    125%): the Ownership card has ~40px under its text, too little for the
    medal above its badge, so the key sits beside the badge instead. */
-@media (min-width: 68.75rem) and (min-height: 37.5rem) and (max-height: 56rem) {
+@media (min-width: 68.75rem) and (min-height: 48.75rem) and (max-height: 56rem) {
   .home-fit__medal {
     flex-direction: row;
-    gap: 0.5rem;
+    gap: 0.4rem;
   }
   .home-fit__medal > :first-child {
-    height: clamp(2rem, 6vh, 3.25rem);
+    /* The card is ~167px wide inside its padding at 1280×800; a 48px key
+       beside a 147px badge overflowed it by 17px (R10). */
+    height: clamp(1.75rem, 4.4vh, 3rem);
+    flex: 0 0 auto;
   }
   .home-fit__medal > :last-child {
     margin-top: 0;
+    min-width: 0;
     white-space: nowrap;
-    font-size: 11px;
+    font-size: clamp(9px, 0.72vw, 11px);
+    padding-inline: clamp(0.4rem, 0.6vw, 0.75rem);
   }
   /* Lists: one more row fits when every row gives up a few pixels. */
   .home-fit__rows > li {
