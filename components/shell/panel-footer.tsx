@@ -19,7 +19,10 @@ export function PanelFooter() {
   return (
     // `.panel-footer` is hidden on the fitted home page (design/tokens.css),
     // where the rail's copyright stands in for it.
-    <footer className="panel-footer border-t border-line px-5 py-10 sm:px-8 lg:px-12">
+    // Less bottom padding on a phone: below it sits the band reserved for the
+    // floating tab bar (app/layout.tsx), so a full py-10 there was 40px of
+    // nothing on top of 80px of nothing.
+    <footer className="panel-footer border-t border-line px-5 pb-6 pt-10 sm:px-8 sm:pb-10 lg:px-12">
       <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="font-mono text-2xs uppercase tracking-widest text-text-3">

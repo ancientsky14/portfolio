@@ -97,6 +97,8 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
 | R7 | Repositioning — product developer, eBudget added, drafts corrected | **done** |
 | R8 | Reference shell + components — panel scroll, work viewer, tab bar, intro | **done** |
 | R10 | Layout pass for phones and laptops — nothing clipped, the tab bar steps aside, 40px touch targets, capped measure | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R10" |
+| R11 | Responsive type scale — the phone ratio, measured at 360px | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R11" |
+| R12 | Mobile shell — full name, portrait in the bar, one CTA, footer band | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R12" |
 | R9 | Hardening — budgets, keyboard + contrast pass (OG image done in `UPCOMING-FEATURES.md` Phase 1) | **partial** 2026-09-14: a11y 100, JS/CLS met; LCP 2.2–2.6s, Performance 70–79, real Android unmeasured. R9b profiled it: the floor is Next/React hydration, not site code — `UPCOMING-FEATURES.md` "R9", "R9b" |
 
 ### The shell
@@ -121,10 +123,19 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
   card complete. Adding a row to a bento card means re-running the sweep in
   `UPCOMING-FEATURES.md` "R10", not eyeballing it.
 - The mobile tab bar slides away while the reader scrolls down, returns on
-  scroll up or at the top, and steps aside while a form field has focus
-  (R10) — it used to sit on top of content at rest. It never moves under
-  reduced motion: a nav that vanishes is worse than one that overlaps for
-  anyone who cannot track the movement.
+  scroll up, at the top, and within 64px of the document end (R12) — the
+  panel reserves a band under the footer for the bar, so down there it covers
+  nothing and hiding it just left that band visibly empty. It steps aside
+  while a form field has focus (R10) — it used to sit on top of content at
+  rest. It never moves under reduced motion: a nav that vanishes is worse
+  than one that overlaps for anyone who cannot track the movement.
+- **Below lg the header carries identity, search and theme — nothing else.**
+  It had a "Get in touch" pill until R12 (2026-09-16, Jan's call): it was the
+  third copy of that link on the home screen, after the hero button and the
+  tab bar's permanent Contact, and its 79–95px is what truncated the name to
+  "Jan Luigi Ri…" on a 360px phone. The tab bar is the mobile CTA; don't add
+  the pill back. The bar shows the rail's photo at 36px (`.avatar-mark`),
+  since the rail itself is hidden there.
 - Reference components (2026-09-11, Jan's request): the `/work` gallery with
   its card → modal viewer, the mobile tab bar, and the first-visit boot
   intro (`html.is-intro`, set by the boot script). The intro overrides the
@@ -204,6 +215,15 @@ and are **not** a map of the Philippines — see the header comment in
   horizontal padding elsewhere.
 - Type scale and colours come from tokens — no arbitrary Tailwind values like
   `text-[17px]` or `bg-[#111]`.
+- **The type scale is responsive; a heading takes one class.** The `--text-*`
+  tokens step from a 1.18 phone ratio to the 1.26 desktop ratio at 40rem
+  (`design/tokens.css`), so `text-2xl` is already 28px on a phone and 36px on
+  a laptop. Do **not** add an `sm:text-` step to get a smaller phone size —
+  that stacks two step-downs. The existing `sm:`/`lg:` steps on the page h1s
+  are deliberate: they raise the desktop end past the token step, not lower
+  the phone end. The scale lives in a plain `@theme`, not the `@theme inline`
+  block above it, because `inline` bakes the literal value into the utility
+  and the media query would never reach it.
 - `three` is installed and reaches the browser **only** through the dynamic
   import in `components/hero/archipelago.tsx`. Never import it anywhere that
   the main bundle can reach. `@react-three/fiber` and `@react-three/drei` are

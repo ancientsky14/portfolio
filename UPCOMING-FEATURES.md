@@ -609,6 +609,146 @@ ignoring `.sr-only`.
 
 ---
 
+## R11 — Responsive type scale (2026-09-16)
+
+Jan reported the typography reading too large on Android, in a device
+simulator and on a real phone. R10 had swept 390 and 412 for clipping, tap
+targets and characters per line — never for heading size, and never at 360,
+which is the common Galaxy/Redmi width and 8% narrower than the iPhone frame
+a simulator defaults to.
+
+**What was wrong.** The scale was one fixed set of rem values drawn for the
+desktop panel. Measured at 360 with the `px-5` gutter, leaving 320px:
+
+- Page h1s 48px — `/work/` and `/lab/` wrapped to three lines, about eleven
+  characters a line for an extrabold display face.
+- Section h2s 36px and h3s 27px at *every* width; only 11 of ~180 text call
+  sites stepped down at all.
+- Ledes 21px → 29–32 characters a line, against a comfortable 45–75.
+
+**What changed.** One thing: `design/tokens.css`. The `--text-*` scale moved
+out of `@theme inline` into a plain `@theme`, holding a 1.18 phone ratio off
+the same 17px body, and an unlayered `:root` media query steps it to the
+original 1.26 scale at 40rem. The bottom four steps (11/13/15/17) are
+unchanged — they were already right on a phone, and `--text-2xs` carries the
+mono labels and the tab bar.
+
+**Why the `@theme` split was unavoidable.** `@theme inline` makes Tailwind
+emit the literal into the utility — `.text-2xl{font-size:2.25rem}` — so
+overriding the variable in a media query would have moved the two raw-CSS
+uses (`.boot__name`, `.boot__role`) and silently missed every utility. Plain
+`@theme` emits `font-size:var(--text-2xl)`. The colours and fonts must stay
+`inline` for the opposite reason: `.dark` and next/font reassign them.
+
+**No call site changed.** The existing `sm:text-4xl` / `lg:text-4xl` steps on
+the page h1s compose with the responsive tokens rather than fighting them —
+each variant resolves through the same token, so it raises the desktop end
+while the token lowers the phone end. Collapsing them, as first planned,
+would have cut desktop h1s from 68px to 48px. Verified by diffing the built
+CSS before and after: the only changes are `font-size:<literal>` →
+`font-size:var(--text-*)` on nine utilities and three variants, plus the new
+media block. Every `line-height` declaration is byte-identical, so at ≥640px
+the site renders exactly as it did.
+
+**Verified** with a headless sweep (`typesweep.mjs`, scratchpad — rebuild it
+by serving `out/`, then reading computed `font-size`, box-height ÷
+line-height for line counts, and `documentElement.scrollWidth`) at 360×800,
+390×844, 412×915 and 1280×800 on `/`, `/work/`, `/work/mgb-ebudget/`,
+`/services/`, `/about/`, `/lab/`, `/contact/`:
+
+- 1280 unchanged — h1 68, h2 36, h3 27, body 21/17/15, the fitted home's
+  `.home-fit__title` clamp still winning at 44px.
+- 360 — h1 33px in one or two lines, h2 28, h3 20–23, ledes 20px. No page
+  gained horizontal scroll.
+
+**Found, not fixed — `/contact/` overflows 10px at 360.** Its single-column
+grid takes a 350px min-content track inside a 320px column, so every child
+sits 10px past the viewport and the page scrolls sideways. Re-measured with
+the old token values forced back on: **370px either way** — pre-existing,
+nothing to do with the type scale, and invisible to R10 because 360 was not
+in that sweep. The likely culprit is an unbreakable string in the socials
+list (the Discord snowflake) with no `min-w-0` on the grid.
+
+**Not measured:** a real Android device. R9 still lists that open. Note when
+it happens that Chrome for Android's own text-scaling slider (Settings →
+Accessibility) multiplies page text on top of this and often ships above
+100%. The site honours it correctly because everything is in rem — never add
+`text-size-adjust: none` to defeat it.
+
+---
+
+## R12 — Mobile shell (2026-09-16)
+
+Four things Jan reported from a phone, all in the shell. Measured on the
+build at 360 and 390 before touching anything.
+
+**What was wrong**
+
+- **The name truncated to "Jan Luigi Ri…".** It needs 104px; it had 73px at
+  360 and 87px at 390. What ate the width was the header's "Get in touch"
+  pill — 79–95px, and at 360 it was wrapping onto two lines inside a 56px bar.
+- **No portrait below lg.** The mobile bar showed a JLR monogram, and the rail
+  that carries the photo is hidden there, so Jan's face never appeared on a
+  phone.
+- **"Get in touch" three times on the home screen:** header pill, hero button,
+  and Contact in the tab bar.
+- **136px of dead space under the footer** — the panel's `pb-24` (96px,
+  reserved so the floating tab bar never covers the footer) plus the footer's
+  own 40px. The bar slides away on scroll-down (R10), so a reader who reaches
+  the end sees the whole reserved band empty.
+
+**What changed**
+
+- **The header pill is gone below lg** (Jan's call). The tab bar's Contact is
+  permanent and thumb-height; the hero keeps its client/employer pair. That
+  freed 87–103px — enough for the full name *and* the photo.
+- **The photo at 36px** in the bar, `.avatar-mark` in `design/tokens.css`.
+  Deliberately not `.portrait`: a 22px blur, a 14px drop-shadow and a shoulder
+  fade are all bigger than the element. What a 36px circle needs is a crop —
+  the source is a 512² head-and-shoulders frame, so untouched it reads as a
+  distant figure in a t-shirt. `scale(1.85)` from `50% 18%`, with a ring and
+  fill so the transparent cutout does not float on the bar in either theme.
+  Falls back to the monogram when `lib/avatar.ts` returns null, as the rail does.
+- **The reserved band is now the bar's actual footprint** — 65px tall plus its
+  `bottom-3` offset is 77px, so `pb-[calc(5rem+env(safe-area-inset-bottom))]`.
+  The `env()` term is a fix, not a tidy-up: the bar carries the same inset as
+  a margin, so on a notched phone it sits ~34px higher and the old flat 96px
+  was already short.
+- **The footer's bottom padding drops to 24px on phones** (`pb-6 sm:pb-10`).
+- **The tab bar stays put within 64px of the document end** (`END` in
+  `tab-bar.tsx`). This is the change that actually removes the *perception* of
+  emptiness: the band is reserved whether or not the bar is in it, so hiding
+  the bar down there bought nothing and cost the whole band. No interaction
+  with reduced motion — that branch returns before the scroll listener is
+  attached, so `away` is already always false.
+
+**Verified** headless at 360×800, 390×844 and 412×915 on `/`, `/work/`,
+`/about/`, `/contact/`, each with and without `html.a11y-text-2`:
+
+- the name span's `scrollWidth` equals its `clientWidth` everywhere — 104/104,
+  and 117/117 at the largest a11y text step. Not "wider", actually unclipped.
+- the avatar renders at 36px (41px at a11y-text-2 — it is in rem).
+- no header pill on any page; `documentElement.scrollWidth` clean at all three
+  widths except `/contact/` (below).
+- dead space below the footer's last line: **104px, from 136px** — and at the
+  document end the tab bar is visible inside it, 11px off the viewport bottom,
+  so what the reader sees is a nav, not a void.
+
+**A trap worth writing down.** The first sweep reported `/contact/` clean at
+360 and it is not. `waitUntil:"load"` plus a 350ms settle is not enough on
+this site: the boot intro overlay (`div.boot`) and the archipelago canvas lay
+out after that, and both stretch to the document width. Give any overflow
+measurement ≥500ms after `fonts.ready`, or it will report a page clean that
+is not.
+
+**Still open — `/contact/` overflows 10px at 360.** Unchanged by this pass and
+by R11: a 350px min-content grid track inside a 320px column, most likely the
+unbreakable Discord snowflake in the socials list with no `min-w-0`. At
+`a11y-text-2` it reaches 19px, and the tab bar itself then overflows its
+`inset-x-3` by 6px.
+
+---
+
 ## Budgets to re-check after each phase
 
 From CLAUDE.md: LCP < 2.0 s on 4G mid-range Android · CLS < 0.05 · INP < 200 ms

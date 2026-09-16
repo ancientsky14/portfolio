@@ -29,6 +29,11 @@ import { NAV } from "./nav-links";
 const STEP = 6;
 /** Stay put near the top, where the bar covers nothing anyway. */
 const KEEP = 120;
+/** And near the bottom, for the same reason: the panel reserves a band under
+ *  the footer for this bar (app/layout.tsx), so down there it covers nothing
+ *  either — and hiding it left that band visibly empty, which is what a
+ *  reader who scrolls to the end sees. */
+const END = 64;
 
 export function TabBar() {
   const pathname = usePathname();
@@ -70,7 +75,10 @@ export function TabBar() {
       const dy = y - last;
       if (Math.abs(dy) < STEP) return;
       last = y;
-      setAway(dy > 0 && y > KEEP);
+      const atEnd =
+        y + window.innerHeight >=
+        document.documentElement.scrollHeight - END;
+      setAway(dy > 0 && y > KEEP && !atEnd);
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(read);

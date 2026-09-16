@@ -46,7 +46,7 @@ export const SITE = {
   /** Design credit, in the rail and the page footer. Plain text, never a
    *  link — Jan asked on 2026-09-13 that the reference site is not linked
    *  from the page. */
-  credit: "© Kenneth Villar",
+  credit: "© Design inspired by Kenneth Villar",
 
   /**
    * The live visit counter — the portfolio-visits Cloudflare Worker in

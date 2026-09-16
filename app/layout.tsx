@@ -147,15 +147,20 @@ export default function RootLayout({
             element that is. The panel holds a single child on purpose:
             Lenis needs a wrapper (the panel) and one content element. */}
         <div className="flex min-h-dvh flex-col lg:h-dvh lg:min-h-0 lg:flex-row lg:overflow-hidden">
-          <MobileBar />
+          <MobileBar avatarSrc={avatar} />
           <Rail avatarSrc={avatar} />
 
           <div
             id="panel"
             className="panel-scroller flex min-w-0 flex-1 flex-col"
           >
-            {/* pb clears the mobile tab bar; the rail needs none. */}
-            <div className="flex flex-1 flex-col pb-24 lg:pb-0">
+            {/* pb clears the mobile tab bar; the rail needs none. 5rem is
+                what the bar actually occupies — 65px tall plus its `bottom-3`
+                offset is 77px — and the env() term is the part that is easy
+                to miss: the bar carries the same inset as a margin
+                (components/shell/tab-bar.tsx), so on a notched phone it sits
+                ~34px higher than this padding would otherwise allow for. */}
+            <div className="flex flex-1 flex-col pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
               {/* A flex column so a page can fill the panel's height —
                   the home page's `.home-fit` does, on wide screens. */}
               <main id="main" className="flex flex-1 flex-col">
