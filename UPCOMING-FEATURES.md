@@ -15,7 +15,7 @@ Build in phase order. Each phase is independently shippable.
 | 2 | Contact form that really sends (Gmail SMTP) — **live 2026-09-14** | Gmail App Password, Turnstile keys |
 | 3 | Testimonials | Real quotes + written permission |
 | 4 | Ctrl+K search — **built 2026-09-16** | — |
-| 5 | Tagalog / English on key pages | Review of every Tagalog page |
+| 5 | Tagalog / English on key pages — **dropped 2026-09-16**, browsers translate | — |
 
 ---
 
@@ -471,7 +471,43 @@ fitted home page still does not scroll at 1100×600, 1280×720 or 1536×864.
 
 ---
 
-## Phase 5 — Tagalog / English (key pages)
+## Phase 5 — Tagalog / English (key pages) — **DROPPED 2026-09-16**
+
+**Jan's decision, 2026-09-16: do not build this.** Browsers translate a page
+on request, and that is enough here. Built once as `2b81104` (home page,
+shell, dictionaries, EN/TL toggle), then reset out of history the same day —
+it was never pushed and never live.
+
+Why it is not worth doing:
+
+- **A translation is a second copy of claims this site gates for truth.**
+  `displayClient()`, `realMetrics()` and the NEEDS blocks exist so nothing
+  overstates; a mistranslated claim is still a false claim, and every review
+  would have to happen twice.
+- **It only pays off if it is maintained.** Every headline, card and service
+  line would have to be edited in two places forever, or the Tagalog page
+  drifts from the English one without anyone noticing.
+- **The audience reads English**, and the pages a Tagalog visitor would land
+  on next — case studies, lab notes, the CV — are English anyway.
+- **Browser translation needs one thing from us and already has it:** a
+  correct `<html lang="en">`. Keep that accurate and Chrome, Edge and Safari
+  offer Tagalog themselves.
+
+**If it is ever revisited, two things cost most of the effort:**
+
+- Only a **root layout** can set `<html lang>`, so a second language means a
+  second root layout (route groups `(en)` / `(tl)`). That in turn breaks the
+  global 404: with two root layouts Next has none to build it from and writes
+  a bare page with no shell and no `lang`, so it needs
+  `app/global-not-found.tsx` plus `experimental.globalNotFound`.
+- **`notFound()` cannot hide an unreviewed page in a static export** — it
+  still writes `out/tl/index.html`, a bare unstyled page at a public URL. A
+  draft has to be a file the production build never sees: `pageExtensions`
+  in `next.config.ts` including `draft.tsx` only in development. A static
+  export also refuses a route whose `generateStaticParams()` returns nothing,
+  which is the other reason a drafts-only state cannot be a normal route.
+
+The original plan is kept below for reference only.
 
 **Scope (Jan's decision):** Home, Services, About, Contact in Tagalog. Case
 studies, Lab and Writing stay English. Claude drafts the Tagalog; **it ships
