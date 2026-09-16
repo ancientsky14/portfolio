@@ -99,7 +99,8 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
 | R10 | Layout pass for phones and laptops — nothing clipped, the tab bar steps aside, 40px touch targets, capped measure | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R10" |
 | R11 | Responsive type scale — the phone ratio, measured at 360px | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R11" |
 | R12 | Mobile shell — full name, portrait in the bar, one CTA, footer band | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R12" |
-| R13 | Sitemap, the 360px overflow, per-page counts, one LCP dead end | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R13" — the Worker migration and deploy are Jan's to run |
+| R13 | Sitemap, the 360px overflow, per-page counts, one LCP dead end | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R13" — deployed and verified live |
+| R14 | Asset weight — LMIS tour 7.4→2.9MB, tool mark −50% | **partial** 2026-09-16: `public/` 13.9→9.7MB. **sentro's tour is 48% blank and needs re-recording** — `UPCOMING-FEATURES.md` "R14" |
 | R9 | Hardening — budgets, keyboard + contrast pass (OG image done in `UPCOMING-FEATURES.md` Phase 1) | **partial** 2026-09-14: a11y 100, JS/CLS met; LCP 2.2–2.6s, Performance 70–79, real Android unmeasured. R9b profiled it: the floor is Next/React hydration, not site code — `UPCOMING-FEATURES.md` "R9", "R9b" |
 
 ### The shell

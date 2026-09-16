@@ -29,11 +29,24 @@ const FFMPEG =
   process.env.PLAYWRIGHT_FFMPEG ??
   path.join(os.homedir(), "AppData", "Local", "ms-playwright", "ffmpeg-1011", "ffmpeg-win64.exe");
 
-/** Seconds. `start` skips what the banner does not need. */
+/**
+ * Seconds. `start` skips what the banner does not need.
+ *
+ * Every recording opens on a blank page load, so `start` is first of all the
+ * point where pixels appear — check it before trusting a number here. A
+ * banner loops, so a blank second at the head comes back every loop: the
+ * reader sees a white flash, not an intro. Measure it by sampling frames
+ * (`ffmpeg -vf fps=2` and look for PNGs of a few hundred bytes — a flat
+ * frame compresses to nothing) rather than by eye.
+ */
 const PLAN = {
-  "santol-lmis": { start: 0, duration: 45 },
+  // Content appears at 2.5–3.0 s; 3.5 clears the fade-in (R14).
+  "santol-lmis": { start: 3.5, duration: 45 },
   "mgb-region-1-etracker": { start: 10, duration: 45 },
-  sentro: { start: 0, duration: 45 },
+  // NOT re-runnable: the shipped cut is 48% blank (content starts at 9 s) and
+  // its original recording exists on no machine here, so this entry cannot be
+  // applied without re-capturing. See UPCOMING-FEATURES.md "R14".
+  sentro: { start: 9, duration: 45 },
   "mgb-ebudget": { start: 0, duration: 29 },
 };
 

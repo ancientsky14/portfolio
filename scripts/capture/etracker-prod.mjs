@@ -1,5 +1,5 @@
 /**
- * eTracker (MGBR1 Database Tracking System) — screenshots and a screen
+ * eTracker (MGBR1 Disbursement Tracking System) — screenshots and a screen
  * recording for /work/mgb-region-1-etracker, from the LIVE system, on Jan's
  * instruction (2026-09-11), with Jan signing in himself.
  *

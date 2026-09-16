@@ -871,6 +871,97 @@ or the Lighthouse ≥ 95 budget changes, with Jan.
 
 ---
 
+## R14 — Asset weight, and two tours that open on nothing (2026-09-16)
+
+Nothing had ever audited `public/`. It held the heaviest thing on the site by
+4.7×, and looking at why turned up a worse defect that had nothing to do with
+size.
+
+### The LMIS tour was never run through the pipeline
+
+| tour | duration | fps | bitrate | size |
+|---|---|---|---|---|
+| mgb-ebudget | 29 s | 15 | 369 kb/s | 1.3 MB |
+| mgb-region-1-etracker | 45 s | 15 | 281 kb/s | 1.6 MB |
+| sentro | 45 s | 15 | 134 kb/s | 0.8 MB |
+| **santol-lmis (before)** | **113 s** | **25** | **526 kb/s** | **7.4 MB** |
+
+`scripts/media/reencode.mjs` already carried `"santol-lmis": { start: 0,
+duration: 45 }` and forces 15 fps. Santol's file was the only one still at
+25 fps and the only one over its planned length — the script had simply never
+been run for that slug. `components/work/loop-video.tsx` is careful
+(`preload="none"`, `src` withheld under reduced motion / Save-Data / 2g,
+playback gated on 25% visibility), so it downloaded only when a reader
+scrolled the banner in — but then it was 7.4 MB, to a buyer CLAUDE.md places
+"outside Metro Manila on mobile data".
+
+**Now 45 s, 15 fps, 2.9 MB.** `public/` went 13.9 → 9.7 MB.
+
+**Why 2.9 MB and not ~1.6 MB like etracker at the same length.** Bitrate here
+is content-driven, not configuration: the script caps at `-b:v 600k` and
+santol's dense scrolling text sits near the cap (543 kb/s) where sentro's
+simpler frames fall to 134. The whole saving came from the duration cut —
+526 → 543 kb/s means dropping 25→15 fps changed nothing, because the encoder
+targets the cap either way. **Do not lower the bitrate to chase the other
+files.** The script's header records why: the first pass "chased file size and
+starved the bitrate… On the page that reads as judder — Jan, 2026-09-13."
+2.9 MB is what this content costs at the agreed quality.
+
+### Every recording opens on a blank page load
+
+Found while checking the cut. A banner **loops**, so a blank head is not an
+intro — it is a white flash every lap.
+
+- **santol-lmis**: blank until ~2.5–3.0 s. `start` is now `3.5`; the new cut
+  has **0 blank frames of 90 samples**.
+- **sentro: 48% of its 45-second loop is blank** — 21.5 s, with content
+  starting at 9.0 s and more blank later. This is shipping now. It is by far
+  the worse defect of the two and has nothing to do with file size; its low
+  134 kb/s is explained by half the clip being a flat white frame.
+- mgb-ebudget and etracker open on content (etracker already had `start: 10`).
+
+**sentro is not fixable from what is on disk.** No `00-tour.full.webm` exists
+for it — `.gitignore:16` excludes them and only santol's survived, on this PC,
+as a by-product of this run. Re-cutting sentro would mean encoding from an
+already-compressed 45 s cut, which the script explicitly exists to avoid, and
+would leave 36 s. The right fix is to re-record it with
+`scripts/capture/sentro.mjs` and then run the re-encode; its PLAN entry is set
+to `start: 9` and commented so nobody applies it to the compressed file by
+mistake.
+
+**Method, worth reusing:** sample frames with `ffmpeg -vf fps=2` and read the
+PNG byte sizes — a flat frame compresses to a few hundred bytes against tens
+of thousands for a real one. It finds blank segments in seconds without
+watching anything.
+
+### The Nous Research mark — half, not a fifth
+
+19.8 KB, 5.8× the next-largest tool mark, for a 24×24 viewBox that never
+renders above 18 px (`ToolIcon` is called at 12–18 px). SVGO, measured against
+the original by SSIM at every size it is used:
+
+| | size | SSIM @18 px | @36 px | @144 px |
+|---|---|---|---|---|
+| precision 1 | 3.5 KB (−82%) | 0.929 | 0.899 | 0.873 |
+| **precision 2** | **9.9 KB (−50%)** | **0.997** | 0.996 | 0.995 |
+
+The plan's ~4 KB target was reachable but not honestly: at precision 1 the eye
+and hair go visibly polygonal when enlarged, and 0.93 is a real deviation, not
+a rounding one. Six KB is not worth rendering someone else's logo more coarsely
+than every other mark on the page. Precision 2 shipped. Note SVGO strips
+`<title>` by default — it was put back by hand; keep it on any future pass.
+
+### Verified
+
+Decodes clean with no errors; 677 frames = 45 s × 15 fps exactly; 0 of 90
+half-second samples blank; the poster (`00-tour.jpg`) is a real content frame,
+unchanged; `00-tour.full.webm` (7.4 MB) sits beside the cut and `git status`
+does not list it — **it is the only copy of the full LMIS recording anywhere**,
+so do not clean it up. Typecheck and build pass; the export carries the 2.9 MB
+tour and the 9.7 KB mark.
+
+---
+
 ## Budgets to re-check after each phase
 
 From CLAUDE.md: LCP < 2.0 s on 4G mid-range Android · CLS < 0.05 · INP < 200 ms

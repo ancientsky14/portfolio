@@ -65,6 +65,11 @@ import {
  * mark for — its Microsoft and OpenAI marks were withdrawn, its "Hermes" is
  * the fashion house, and its Google mark is single-colour — use official
  * colour SVGs in public/icons/tools/ (devicon and lobehub icons, both MIT).
+ * `nous-research.svg` is re-minified locally, not the pristine upstream file:
+ * it shipped at 19.8 KB, 5.8× the next mark, for something drawn at 18 px.
+ * SVGO at precision 2 halved it with SSIM 0.997 against the original at every
+ * size it is used. Precision 1 reached 3.5 KB but SSIM 0.93 — visibly
+ * polygonal when enlarged — so it was not taken (R14).
  * Near-black brands fall back to the text colour on the dark theme, and the
  * one monochrome file is inverted there, so no mark vanishes.
  */

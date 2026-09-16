@@ -32,7 +32,7 @@ are named with their permission.
 | [**eBudget**](https://ancientsky14.github.io/portfolio/work/mgb-ebudget/) — MGB RO1 eBudget & Accounting System | Desktop | In testing | Tauri 2, Rust, React 19, TypeScript, SQLite → PostgreSQL |
 | [**LMIS**](https://ancientsky14.github.io/portfolio/work/santol-lmis/) — Legislative Management & Information System | Web | In production | Next.js 16, TypeScript, Supabase, PostgreSQL, Cloudflare Workers |
 | [**SENTRO**](https://ancientsky14.github.io/portfolio/work/sentro/) — open-source e-governance platform | Platform | In development | React 19, TypeScript, Vite, PocketBase, Docker |
-| [**eTracker**](https://ancientsky14.github.io/portfolio/work/mgb-region-1-etracker/) — MGBR1 Database Tracking System | Web | In use | Next.js 16, TypeScript, Supabase, PostgreSQL, Docker |
+| [**eTracker**](https://ancientsky14.github.io/portfolio/work/mgb-region-1-etracker/) — MGBR1 Disbursement Tracking System | Web | In use | Next.js 16, TypeScript, Supabase, PostgreSQL, Docker |
 
 - **eBudget** is a Windows desktop app for budget execution and accounting
   (Mines and Geosciences Bureau, Regional Office I). It covers allotments,
