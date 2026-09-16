@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { SITE } from "@/lib/site";
-import { NAV } from "./nav-links";
 import { SocialLinks } from "./social-links";
 
 /**
@@ -11,6 +9,10 @@ import { SocialLinks } from "./social-links";
  * all of it here would be the third copy on screen. What the footer owes the
  * reader is the one thing the rail cannot guarantee: a plain, selectable
  * email address that works with JavaScript off.
+ *
+ * No nav links (removed 2026-09-16, Jan's call): the rail from lg up and the
+ * tab bar below it are both permanently on screen, so a footer list was a
+ * second copy of the same NAV. Don't add one back.
  */
 
 export function PanelFooter() {
@@ -34,21 +36,8 @@ export function PanelFooter() {
           </p>
         </div>
 
-        <nav aria-label="Footer" className="lg:text-right">
-          <ul className="flex flex-wrap gap-x-5 gap-y-2 lg:justify-end">
-            {NAV.filter((l) => l.href !== "/").map((l) => (
-              <li key={l.href}>
-                <Link
-                  href={l.href}
-                  className="text-sm text-text-2 transition-colors hover:text-accent"
-                >
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-
-          <SocialLinks className="mt-5 lg:justify-end" />
+        <div className="lg:text-right">
+          <SocialLinks className="lg:justify-end" />
 
           <p className="mt-5 font-mono text-2xs uppercase tracking-widest text-text-3">
             © {new Date().getFullYear()} {SITE.name} · Built in the Philippines
@@ -57,7 +46,7 @@ export function PanelFooter() {
           <p className="mt-2 font-mono text-2xs uppercase tracking-widest text-text-3">
             {SITE.credit}
           </p>
-        </nav>
+        </div>
       </div>
     </footer>
   );
