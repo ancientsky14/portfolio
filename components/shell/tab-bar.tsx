@@ -82,8 +82,9 @@ export function TabBar() {
         return;
       }
       last = y;
+      if (fieldFocused) return;
       if (atEnd) {
-        if (!fieldFocused) setAway(false);
+        setAway(false);
         return;
       }
       setAway(dy > 0 && y > KEEP);
