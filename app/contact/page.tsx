@@ -70,7 +70,14 @@ export default function Contact() {
       </section>
 
       <section className="border-b border-line px-5 py-14 sm:px-8 lg:px-12">
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:gap-16">
+        {/* `grid-cols-[minmax(0,1fr)]` at every width, not only from lg. A
+            bare single-column grid gets an implicit `auto` track, which is
+            allowed to grow past its container and refuses to shrink below its
+            items' min-content: at 360px it resolved to 350px inside a 320px
+            box, pushing the whole page 10px sideways. The lg rule already
+            guards against this with minmax(0,…) — the mobile case just never
+            got the same treatment. */}
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:gap-16">
           <div data-reveal>
             <h2 className="font-display text-2xl font-semibold tracking-tight">
               Send a brief

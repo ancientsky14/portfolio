@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { SITE } from "@/lib/site";
 
 /**
@@ -17,6 +18,11 @@ import { SITE } from "@/lib/site";
  *     when it becomes visible again — other visitors arrive within a minute.
  *   · Never counts on localhost or in an automated browser; those only read.
  *
+ * It also carries the per-page beacon (POST /view, one per route change) —
+ * see the effect below for why that cannot be folded into /hit. This
+ * component is the right home for it because it is already a client
+ * component mounted once in the shell, so the beacon adds no new bundle.
+ *
  * The Worker's total includes a fixed +3,000 start offset (Jan, 2026-09-15,
  * workers/visits/migrations/0002_start_offset.sql); this renders it as given.
  *
@@ -28,10 +34,15 @@ import { SITE } from "@/lib/site";
 const HIT_KEY = "visit-hit";
 const POLL_MS = 60_000;
 
-function mayCount(): boolean {
+/** Real visitors only: never localhost, never an automated browser. */
+function realVisitor(): boolean {
   const host = window.location.hostname;
   if (host === "localhost" || host === "127.0.0.1" || host === "[::1]") return false;
-  if (navigator.webdriver) return false;
+  return !navigator.webdriver;
+}
+
+function mayCount(): boolean {
+  if (!realVisitor()) return false;
   try {
     return sessionStorage.getItem(HIT_KEY) !== "1";
   } catch {
@@ -41,7 +52,25 @@ function mayCount(): boolean {
 
 export function VisitCount() {
   const api = SITE.visitsApi;
+  const pathname = usePathname();
   const [count, setCount] = useState<number | null>(null);
+
+  // Which pages get read (workers/visits migration 0003). Separate from the
+  // visit above on purpose: /hit fires once a session, so it only ever knows
+  // the page someone landed on. This fires per route, and the Worker still
+  // counts a visitor once per day per path, so it is reads-by-people rather
+  // than page loads. Nothing on the site displays it — the reply is ignored,
+  // and the rail keeps showing the single total.
+  useEffect(() => {
+    if (!api || !pathname || !realVisitor()) return;
+    const p = pathname.endsWith("/") ? pathname : `${pathname}/`;
+    // No body and no custom headers, so it stays a simple CORS request with
+    // no preflight — the path rides in the query string.
+    void fetch(`${api}/view?p=${encodeURIComponent(p)}`, {
+      method: "POST",
+      keepalive: true,
+    }).catch(() => {});
+  }, [api, pathname]);
 
   useEffect(() => {
     if (!api) return;

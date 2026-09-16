@@ -3,8 +3,9 @@
  * (components/shell/visit-count.tsx). Replaced GoatCounter, whose public
  * total lagged up to four hours (Jan, 2026-09-13).
  *
- *   POST /hit    count this visitor (once per Manila day), return { count }
- *   GET  /count  return { count }
+ *   POST /hit     count this visitor (once per Manila day), return { count }
+ *   GET  /count   return { count }
+ *   POST /view?p= count one page read (once per visitor per day per path)
  *
  * The total includes a fixed +3,000 start offset (migration 0002, Jan,
  * 2026-09-15). Real visits = count - 3000.
@@ -17,6 +18,13 @@
  * counted, and the same visitor counts once per day. A determined script can
  * still fake an Origin — the per-day key caps that at one visit per IP and
  * user agent per day.
+ *
+ * /view answers "which pages get read" (migration 0003). It is never exposed:
+ * there is no read endpoint and no UI, and the rail still shows the one
+ * total. Jan reads it with `wrangler d1 execute` — see the migration. The
+ * path comes from the browser, so it is untrusted and is matched against the
+ * shapes in `okPath` before it is stored; anything else is dropped, which is
+ * what stops the table being filled with junk keys.
  */
 
 export interface Env {
@@ -35,6 +43,25 @@ const list = (csv: string) =>
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+
+/**
+ * The site's routes, by shape rather than by name — adding a case study or a
+ * lab note must not need a Worker deploy. Everything else is dropped: the
+ * path arrives from the browser, and an unbounded key would let anyone grow
+ * the table a row at a time. Paths carry a trailing slash (`trailingSlash:
+ * true` in next.config.ts) and no basePath — `usePathname()` strips it.
+ */
+const ROUTES = new Set([
+  "/",
+  "/work/",
+  "/services/",
+  "/about/",
+  "/contact/",
+  "/lab/",
+  "/writing/",
+]);
+const ENTRY = /^\/(work|lab)\/[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?\/$/;
+const okPath = (p: string) => ROUTES.has(p) || ENTRY.test(p);
 
 /** YYYY-MM-DD in Asia/Manila — "one visit per day" means the visitor's day. */
 function manilaDay(at = new Date()): string {
@@ -61,6 +88,18 @@ function json(body: unknown, status: number, origin: string | null): Response {
     headers.vary = "Origin";
   }
   return new Response(JSON.stringify(body), { status, headers });
+}
+
+/**
+ * The per-day visitor key — the same one /hit and /view both count by, so a
+ * page read and a visit agree on who a visitor is. Returns null when the
+ * request should not be counted at all (no user agent, or a known bot).
+ */
+async function visitorKey(request: Request, env: Env, day: string): Promise<string | null> {
+  const ua = request.headers.get("User-Agent") ?? "";
+  if (!ua || BOT.test(ua)) return null;
+  const ip = request.headers.get("CF-Connecting-IP") ?? "";
+  return sha256(`${env.VISIT_SALT}:${day}:${ip}:${ua}`);
 }
 
 async function total(env: Env): Promise<number> {
@@ -102,14 +141,11 @@ export default {
         return json({ error: "not configured" }, 500, origin);
       }
 
-      const ua = request.headers.get("User-Agent") ?? "";
-      if (!ua || BOT.test(ua)) {
+      const day = manilaDay();
+      const visitor = await visitorKey(request, env, day);
+      if (!visitor) {
         return json({ count: await total(env), counted: false }, 200, origin);
       }
-
-      const ip = request.headers.get("CF-Connecting-IP") ?? "";
-      const day = manilaDay();
-      const visitor = await sha256(`${env.VISIT_SALT}:${day}:${ip}:${ua}`);
 
       // One transaction: the insert (a repeat is ignored, so the trigger
       // does not fire) and the read of the total that the trigger updated.
@@ -124,12 +160,47 @@ export default {
       return json({ count }, 200, origin);
     }
 
+    // One page read. Returns no number — nothing on the site displays this,
+    // so there is nothing for the browser to do with a reply.
+    if (url.pathname === "/view" && request.method === "POST") {
+      if (!origin || !list(env.HIT_ORIGINS).includes(origin)) {
+        return json({ error: "origin not allowed" }, 403, readOrigin);
+      }
+      if (!env.VISIT_SALT) {
+        return json({ error: "not configured" }, 500, origin);
+      }
+
+      const path = url.searchParams.get("p") ?? "";
+      if (!okPath(path)) {
+        return json({ counted: false }, 200, origin);
+      }
+
+      const day = manilaDay();
+      const visitor = await visitorKey(request, env, day);
+      if (!visitor) {
+        return json({ counted: false }, 200, origin);
+      }
+
+      // A repeat is ignored, so the trigger does not fire — a reader
+      // refreshing or coming back to a page counts once for the day.
+      await env.VISITS_DB.prepare(
+        "INSERT OR IGNORE INTO page_hits (day, visitor, path) VALUES (?1, ?2, ?3)",
+      )
+        .bind(day, visitor, path)
+        .run();
+
+      return json({ counted: true }, 200, origin);
+    }
+
     return json({ error: "not found" }, 404, readOrigin);
   },
 
-  /** Daily: forget visitor keys older than two days. The total stays. */
+  /** Daily: forget visitor keys older than two days. The counts stay. */
   async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
     const cutoff = manilaDay(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000));
-    await env.VISITS_DB.prepare("DELETE FROM visits WHERE day < ?1").bind(cutoff).run();
+    await env.VISITS_DB.batch([
+      env.VISITS_DB.prepare("DELETE FROM visits WHERE day < ?1").bind(cutoff),
+      env.VISITS_DB.prepare("DELETE FROM page_hits WHERE day < ?1").bind(cutoff),
+    ]);
   },
 } satisfies ExportedHandler<Env>;

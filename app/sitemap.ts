@@ -14,7 +14,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/about",
     "/contact",
     "/lab",
-    "/writing",
+    // No "/writing": it is a placeholder until lib/writing.ts has posts, and
+    // it renders the build-phase note verbatim ("Phase 6 · MDX", "Candidates:
+    // …"). It is already kept out of the nav and out of Ctrl+K search for
+    // that reason (lib/search-index.ts) — submitting it to Google anyway was
+    // the odd one out. Add it back in the same commit that adds the posts.
     ...getWorkSlugs().map((s) => `/work/${s}`),
     ...getLabSlugs().map((s) => `/lab/${s}`),
   ];

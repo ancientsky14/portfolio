@@ -142,6 +142,17 @@ export function ToolIcon({
     if (f) {
       return (
         // A plain <img>: a static export ships with image optimisation off.
+        //
+        // Not `loading="lazy"` — tried and reverted 2026-09-16 (R13). React 19
+        // preloads server-rendered images, which puts five `<link rel=preload
+        // as=image>` for these marks in the home page's head (27 KB, 20 of it
+        // one unoptimised SVG), and lazy images are not preloaded. It worked:
+        // preloads went 6 → 1. It bought nothing: LCP median 1400 → 1420 ms
+        // over 5 runs each, ranges overlapping — this page's LCP equals its
+        // FCP, so it is gated by HTML, CSS and CPU, not by image bandwidth.
+        // And the marquee scrolls horizontally, so its off-screen marks would
+        // have popped in mid-animation. Shrinking nous-research.svg is the
+        // change that would actually pay.
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={`${BASE}/icons/tools/${f.file}`}

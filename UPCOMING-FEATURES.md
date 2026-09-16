@@ -749,6 +749,128 @@ unbreakable Discord snowflake in the socials list with no `min-w-0`. At
 
 ---
 
+## R13 — Sitemap, the 360px overflow, per-page counts, one LCP attempt (2026-09-16)
+
+Jan asked what was left worth doing. The audit's answer is in two halves: what
+follows, and **two things worth more than all of it that only Jan can do** —
+the three lab notes still at `bodyReviewed: false` (106 words of `<main>` in
+production against 3,799 for a case study, on three pages the nav and sitemap
+both point at), and the absence of any testimonial.
+
+### `/writing` is no longer in the sitemap
+
+It renders "Phase 6 · MDX" and "Candidates: shipping signed auto-updates…"
+verbatim — build-phase language on a page a recruiter could reach from a
+search result. It was already kept out of the nav and out of Ctrl+K search for
+exactly that reason (`lib/search-index.ts`); `app/sitemap.ts` was the odd one
+out. Now 13 URLs, no `/writing/`. Put it back in the commit that adds posts.
+
+### The 360px overflow was one bug, not two
+
+`/contact/` scrolled sideways 10px at 360 (19px at `a11y-text-2`), and the tab
+bar appeared to overflow its `inset-x-3` by 6px. **The second was a symptom of
+the first**: a `position: fixed` element sizes to the containing block, so when
+the document widened to 370 the bar widened with it. One fix cleared both.
+
+The cause, finally: `div.grid gap-12 lg:grid-cols-[…]` on
+`app/contact/page.tsx` had **no base `grid-cols`**, so below lg it got an
+implicit `auto` track. An auto track may not shrink below its items'
+min-content contribution and is free to exceed its container — the computed
+`grid-template-columns` read **350px inside a 320px box**. The `lg:` rule
+already guards against this with `minmax(0,…)`; the mobile case never got the
+same treatment. Adding `grid-cols-[minmax(0,1fr)]` at the base width fixed it.
+
+**Three wrong hypotheses were paid for before that — do not repeat them:**
+
+- *The boot intro overlay.* Measured 370px with the intro both running and
+  skipped.
+- *The socials list's min-content.* The `<a>` measures 202px; `min-w-0 flex-1`
+  and `truncate` were already in place. The four cards rendering at 350px were
+  a **consequence** of the track, not its cause.
+- *`div.grid`'s own min-content* (266px). Setting `width: min-content` on a
+  **grid item** measures the item inside the already-sized track and tells you
+  nothing about the track's sizing. Read the container's computed
+  `grid-template-columns` instead — that is the number that gives it away.
+
+Also: filter `position: fixed` out of any overflow walk first. The archipelago
+layer is always the widest element on an overflowing page and always a
+symptom; a walk that follows the widest child lands there and learns nothing.
+
+### Per-page counts (workers/visits migration 0003)
+
+The rail's single total says people arrive, not what they read. New
+`POST /view?p=…`, counted once per visitor per Manila day per path, keyed by
+the **same** `visitor` hash as `/hit` so the privacy design is unchanged.
+
+`/hit` could not carry this: it fires once per browser session, so it only
+ever knows the landing page. The beacon therefore lives in
+`components/shell/visit-count.tsx` on a `usePathname()` effect — already a
+client component mounted once in the shell, already importing nothing new
+(`usePathname` is in `rail.tsx` and `tab-bar.tsx` too).
+
+- **No read endpoint and no UI.** The rail still shows the one total. Jan
+  reads the breakdown from a terminal; the command is in the migration.
+- The path arrives from the browser, so it is untrusted: `okPath` matches it
+  by **shape** (`ROUTES` plus `^/(work|lab)/<slug>/$`, slug capped at 60
+  chars), so adding a case study needs no Worker deploy and nobody can grow
+  the table a row at a time. 22 path cases tested, including `..`, uppercase,
+  an 80-char slug, a basePath-prefixed path and `//evil.com/`.
+- `page_views` carries **no** start offset. Migration 0002's +3,000 is the
+  rail total only, so the two will not reconcile and are not meant to.
+
+**Verified against a local D1:** the trigger counts a new (day, visitor, path)
+once and ignores the repeat — two visitors and three inserts on one path gave
+`count: 2`; the rail total stayed at exactly 3000 (the offset, no real
+visits); the nightly cleanup dropped an old key (4 → 3) while `page_views`
+kept all four counts.
+
+**Jan runs these** (his own Cloudflare account):
+
+```bash
+cd workers/visits
+npx wrangler d1 migrations apply portfolio-visits --remote
+npm run deploy
+```
+
+Nothing breaks if they are not run yet: `/view` 404s and the browser ignores
+it. Note `workers/visits/node_modules` had never been installed on the office
+PC — `npm install` there is part of the setup in section 0.
+
+### LCP — a measured dead end
+
+**Tried:** React 19 preloads the images it server-renders, which put six
+`<link rel="preload" as="image">` in the home page's head — `/avatar.webp`
+plus **five tool marks, 27 KB, 20 of it one unoptimised `nous-research.svg`** —
+competing with the fonts. `loading="lazy"` on the marks stops React preloading
+them; preloads went 6 → 1.
+
+**Reverted.** It bought nothing measurable: LCP median 1400 → 1420 ms over
+five runs each, ranges overlapping (1368–1512 vs 1300–1464). And the marquee
+scrolls horizontally, so its off-screen marks would have popped in
+mid-animation.
+
+**The finding that matters, and that reframes the budget:** on this page
+**LCP is exactly equal to FCP, run for run** — the lede paints with the first
+paint. Confirms R9b from a different direction. So LCP here is gated by HTML,
+CSS and CPU, not by anything that loads after the first paint, and no amount
+of resource reordering will move it. The remaining levers are the hydration
+floor (structural) and the ~108 KB of preloaded woff2 — and the fonts are
+already preloaded, so that lever is spent too.
+
+Harness (rebuild it from here): serve `out/` with gzip, Playwright at
+412×915, CDP `Network.emulateNetworkConditions` 1.6 Mbps / 150 ms and
+`Emulation.setCPUThrottlingRate` 4, a `PerformanceObserver` on
+`largest-contentful-paint` with `buffered: true` installed via
+`addInitScript`, five runs, compare medians and ranges. Note
+`performance.getEntriesByType("largest-contentful-paint")` returns nothing
+after the fact — it must be an observer.
+
+**Still owed:** the real mid-range Android on mobile data. Every number above
+is an emulator, and the repo's own conclusion stands — decide whether the site
+or the Lighthouse ≥ 95 budget changes, with Jan.
+
+---
+
 ## Budgets to re-check after each phase
 
 From CLAUDE.md: LCP < 2.0 s on 4G mid-range Android · CLS < 0.05 · INP < 200 ms

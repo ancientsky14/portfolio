@@ -99,6 +99,7 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
 | R10 | Layout pass for phones and laptops — nothing clipped, the tab bar steps aside, 40px touch targets, capped measure | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R10" |
 | R11 | Responsive type scale — the phone ratio, measured at 360px | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R11" |
 | R12 | Mobile shell — full name, portrait in the bar, one CTA, footer band | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R12" |
+| R13 | Sitemap, the 360px overflow, per-page counts, one LCP dead end | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R13" — the Worker migration and deploy are Jan's to run |
 | R9 | Hardening — budgets, keyboard + contrast pass (OG image done in `UPCOMING-FEATURES.md` Phase 1) | **partial** 2026-09-14: a11y 100, JS/CLS met; LCP 2.2–2.6s, Performance 70–79, real Android unmeasured. R9b profiled it: the floor is Next/React hydration, not site code — `UPCOMING-FEATURES.md` "R9", "R9b" |
 
 ### The shell
@@ -259,6 +260,21 @@ copy button the visitor clicks. Both write
 the same email through `lib/brief.ts`, whose `validateBrief()` is also the
 Worker's guard against header injection: keep one-line fields free of
 control characters.
+
+The `portfolio-visits` Worker (`workers/visits/`, `SITE.visitsApi`) counts two
+things, both keyed by the same unreversible visitor hash — SHA-256 of a secret
+salt, the Manila day, the IP and the user agent, deleted nightly after two
+days, no cookies:
+
+- `POST /hit` — one visit per browser session; `GET /count` feeds the single
+  number in the rail. The total carries a **+3,000 display offset**
+  (migration 0002). Real visits = count − 3000.
+- `POST /view?p=` — one page read per visitor per day per path (migration
+  0003, R13). **Nothing on the site displays it and there is no read
+  endpoint**; the breakdown is read with `wrangler d1 execute` — the command
+  is in the migration. These rows carry no offset. The path comes from the
+  browser and is matched by shape in `okPath`, so a new case study needs no
+  Worker deploy — keep it that way rather than listing slugs.
 
 ### Share cards, search-engine data, booking (2026-09-14)
 
