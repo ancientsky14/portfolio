@@ -34,6 +34,10 @@ const KEEP = 120;
  *  either — and hiding it left that band visibly empty, which is what a
  *  reader who scrolls to the end sees. */
 const END = 64;
+const isMainField = (el: EventTarget | null) =>
+  el instanceof HTMLElement &&
+  !!el.closest("#main") &&
+  /^(input|textarea|select)$/i.test(el.tagName);
 
 export function TabBar() {
   const pathname = usePathname();
@@ -45,15 +49,11 @@ export function TabBar() {
   // this one applies under reduced motion too, since it removes an obstacle
   // rather than decorating anything.
   useEffect(() => {
-    const isField = (el: EventTarget | null) =>
-      el instanceof HTMLElement &&
-      !!el.closest("#main") &&
-      /^(input|textarea|select)$/i.test(el.tagName);
     const onIn = (e: FocusEvent) => {
-      if (isField(e.target)) setAway(true);
+      if (isMainField(e.target)) setAway(true);
     };
     const onOut = (e: FocusEvent) => {
-      if (isField(e.target) && !isField(e.relatedTarget)) setAway(false);
+      if (isMainField(e.target) && !isMainField(e.relatedTarget)) setAway(false);
     };
     document.addEventListener("focusin", onIn);
     document.addEventListener("focusout", onOut);
@@ -76,12 +76,17 @@ export function TabBar() {
       const atEnd =
         y + window.innerHeight >=
         document.documentElement.scrollHeight - END;
+      const fieldFocused = isMainField(document.activeElement);
       if (Math.abs(dy) < STEP) {
-        if (atEnd) setAway(false);
+        if (atEnd && !fieldFocused) setAway(false);
         return;
       }
       last = y;
-      setAway(dy > 0 && y > KEEP && !atEnd);
+      if (atEnd) {
+        if (!fieldFocused) setAway(false);
+        return;
+      }
+      setAway(dy > 0 && y > KEEP);
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(read);
