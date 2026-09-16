@@ -669,6 +669,12 @@ nothing to do with the type scale, and invisible to R10 because 360 was not
 in that sweep. The likely culprit is an unbreakable string in the socials
 list (the Discord snowflake) with no `min-w-0` on the grid.
 
+> **Superseded — fixed in R13, and that last sentence is wrong.** The cause was
+> the grid having no *base* `grid-cols`, so below `lg` it got an implicit
+> `auto` track. Nothing to do with the socials or the Discord handle; the
+> `min-w-0` and `truncate` guards were already in place. R15 hit the same trap
+> on `/about/` and records the bisect. Don't chase the socials.
+
 **Not measured:** a real Android device. R9 still lists that open. Note when
 it happens that Chrome for Android's own text-scaling slider (Settings →
 Accessibility) multiplies page text on top of this and often ships above
@@ -746,6 +752,12 @@ by R11: a 350px min-content grid track inside a 320px column, most likely the
 unbreakable Discord snowflake in the socials list with no `min-w-0`. At
 `a11y-text-2` it reaches 19px, and the tab bar itself then overflows its
 `inset-x-3` by 6px.
+
+> **Closed in R13 — and two guesses above are wrong.** The cause was a missing
+> *base* `grid-cols`, not the socials. And the tab bar's 6px was never a
+> separate bug: a `position: fixed` element sizes to the containing block, so
+> it widened *because* the document had. One fix cleared both. R15 hit the
+> same trap on `/about/`.
 
 ---
 
