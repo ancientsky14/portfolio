@@ -1918,6 +1918,26 @@ Still open, all **majors**, held for a deliberate upgrade session:
   Node 22 runtime lacks. `dependabot.yml` now ignores its majors, so bump it
   by hand together with `node-version` in `deploy.yml`.
 
+**Update, same day: Jan merged all of them** (#1–#4, #7–#10, plus #12,
+upload-artifact 4 → 7). The runs for the in-between merges show "cancelled"
+because a queued run is replaced by the newest one. The last, `e9233d9`,
+built and deployed everything green. Checked after:
+
+- CI's `npm run typecheck` passed on TypeScript 7. Locally, `tsc --noEmit`
+  passed on TS 7 in both Workers, which CI doesn't typecheck.
+- The live site with motion 13, desktop 1366 and phone 390: **no page errors,
+  console errors or CSP violations** on `/`, `/services/`, `/about/`, a case
+  study, `/lab/archipelago/`, the work viewer, a page transition and the
+  showcase. On `/contact/` the only console lines are Turnstile's own
+  `%c%d` noise from its iframe, seen before any of these upgrades. The
+  status pill ("Checking your browser…" → "One quick check") works.
+- `actions/download-artifact` is still v4, which warns about Node 20;
+  Dependabot will raise it.
+
+**Trap:** running `npm ci` in the repo root while `next dev` is running fails
+on Windows with `EPERM unlink …lightningcss.win32-x64-msvc.node`, *after*
+deleting most of `node_modules`. Stop the dev server first.
+
 ---
 ## Budgets to re-check after each phase
 
