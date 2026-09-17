@@ -75,12 +75,18 @@ export const SITE = {
    * the Worker (components/contact/brief-form.tsx). With either null it
    * composes an email in the visitor's own mail app, as it always has.
    *
-   * Deployed by Jan to his own Cloudflare account, 2026-09-14. The Turnstile
-   * widget allows ancientsky14.github.io only, so on localhost the check
-   * fails and the form falls back to the mail app — expected.
+   * Deployed by Jan to his own Cloudflare account, 2026-09-14. The real
+   * widget allows only the live hostname, so under `next dev` Turnstile
+   * throws error 110200 ("unknown domain"). Dev therefore gets Cloudflare's
+   * always-pass test key, which renders "For testing only". Production builds
+   * (`next build`, the only thing deployed) always get the real key. A local
+   * send still ends in the mail-app fallback: the Worker refuses the
+   * localhost origin, and the test token fails the real secret.
    */
   contactApi: "https://portfolio-contact.ancientsky14.workers.dev" as string | null,
-  turnstileSiteKey: "0x4AAAAAAEzXmC6xCFa2kh_A" as string | null,
+  turnstileSiteKey: (process.env.NODE_ENV === "development"
+    ? "1x00000000000000000000AA"
+    : "0x4AAAAAAEzXmC6xCFa2kh_A") as string | null,
 } as const;
 
 /** The brief form sends through the Worker only when both halves are set. */
