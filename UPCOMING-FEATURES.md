@@ -1099,6 +1099,215 @@ intact. Typecheck and build pass.
 
 ---
 
+## R17 — The Archipelago showcase (2026-09-17)
+
+Jan pressed "Watch it assemble" on `/lab` and could not feel anything. Built
+from the plan approved 2026-09-16 (`archipelago.md`, folded in here and
+deleted).
+
+### Why the old replay was invisible — three reasons, measured
+
+1. **0.30 opacity.** `uOpacity = base × level`; off the home page `level` is
+   0.6 and `base` 0.5, so `/lab` got 0.30.
+2. **Behind the shell.** A fixed `-z-10` layer under opaque cards and the rail.
+3. **Half a resolve.** The button sent scatter → gather, and `onScatter` only
+   loosens `uProgress` to 0.55 — the reader saw the last 45%.
+
+None was the animation's fault, and fixing any one alone would not have been
+enough.
+
+### What was built
+
+- `lib/motion.ts`: `BG_EVENT.showcase` (`{ on }`) and a `SHOWCASE` timing
+  block, `assemble` derived from `D.slow * 1.4` — the canvas's own load
+  resolve — so the two cannot drift.
+- `archipelago-canvas.tsx`: on → opacity 0.95, `uProgress` set to 0 and
+  tweened to 1; off → finish the resolve if left early, opacity back to the
+  page's level. `overwrite: true` throughout, because the route-change effect
+  tweens the same uniform.
+- `data-showcase-dim` on the shell wrapper, the tab bar, the scroll progress
+  bar and the accessibility button. One attribute, because the CSS dims that
+  set and the JS makes the same set `inert` — a class list in one place and a
+  selector list in another would drift.
+- `bg-replay.tsx`: the orchestrator and a portalled exit that takes focus and
+  gives it back. Ends on its own after in + assemble + hold (2.58s), or early
+  on Escape, a tap, a route change, or `A11Y_EVENT`.
+- The button now also sits on `/lab/archipelago`, its wrapper gated with
+  `.bg-live-only` so a phone without the canvas gets no empty gap.
+
+### Two traps, one caught before it shipped
+
+- **Dismiss on `click` in capture, not `pointerdown`.** The plan said
+  pointerdown. That ends the show, which restores the shell's pointer events
+  before the `click` fires — and the click then lands on whatever link sits
+  under the finger. At click time the shell is still inert, so the tap hits
+  nothing. There is a test for exactly this.
+- **The tab bar's transition.** It already declares `transition: transform`.
+  A generic `transition: opacity` on `[data-showcase-dim]` would have replaced
+  it and silently broken the slide-away, so `.tabbar[data-showcase-dim]`
+  restates both.
+
+### Verified
+
+Headless Chromium with SwiftShader WebGL on the real build, at 390 and 1280,
+on both pages — **70 checks, all pass**: the canvas mounts; all 4 dim targets
+go to 0.08 and inert; the exit is portalled and focused; the show ends on its
+own, inert is removed and focus returns to the trigger; the shell returns to
+full opacity; **CLS 0.0000** across a full run; Escape ends it early; a tap
+over a nav link ends it **without navigating**; `A11Y_EVENT` mid-show leaves
+nothing inert; Enter starts it and Enter on the exit ends it. Under reduced
+motion neither the canvas, the button nor the wrapper renders. Screenshots in
+both themes: at 0.3s a loose field, at 2.4s the chain has formed out of it.
+
+**Tuning left to Jan's eye:** at 8% the page still ghosts through faintly —
+the headline and the big stat numerals on `/lab` sit behind the densest
+island. That is the "dim, not gone" he chose; `opacity: 0.08` in
+`design/tokens.css` is the one number to turn down if it competes.
+
+**Not measured:** a real phone's GPU. SwiftShader proves the logic, not the
+frame rate — the showcase lifts opacity on 30,000 points, which is the part
+worth watching on the mid-range Android in the budget.
+
+### Retimed the same day — 10s show, 5s assemble, 3s return
+
+Jan wanted it to linger. `SHOWCASE` is now 0.4s out, **5s assemble, 4.6s
+hold, 3s return** — ~13s end to end, from ~3.4s. `assemble` is no longer
+derived from the canvas's load resolve (`D.slow * 1.4`): a page load must stay
+fast, the showcase is meant to be watched.
+
+**Changing the numbers alone would not have been felt.** Both phases ran on
+expo.out, which lands ~90% of its movement in the first fifth: a 5s assemble
+reads as a 1s snap and a stall, a 3s return as done in under one. The assemble
+(`uProgress`), the canvas opacity return and the shell's return now use
+in-out (`E_INOUT`, `--ease-in-out`), both already in the system. Stepping
+aside stays quick on `--ease-out`.
+
+**Found while doing it — the R17 transition had been slowing the boot
+intro.** `.tabbar[data-showcase-dim]` declared its opacity transition on the
+resting element, which out-ranks `[data-intro="tabbar"]` and replaced the tab
+bar's first-visit fade (and inherited its 0.26s delay onto the dim). At 3s it
+would have crawled in. The showcase transitions now live only on
+`html.bg-showcase` and on a short-lived `html.bg-showcase-return`, which
+`bg-replay.tsx` adds for the 3s of the return and removes. At rest every dim
+target is back to its pre-R17 transition (`0s`, the tab bar's own `0.3s`
+transform).
+
+The exit hint now drops "Assembling" once the field has formed, so it does not
+claim to be assembling through a 4.6s hold; its accessible name is fixed
+("Return to the page") so the swap is not re-announced.
+
+**Verified**, 390 and 1280 on both pages: dimmed and inert at 1s; still on at
+9.5s; ended by 10.7s with focus back; **return still in progress at 11.6s
+(shell ~0.6)** and fully back with the class cleared by 13.9s; hint says
+"Assembling" at 1s and not at 6s; CLS 0; every R17 interaction check still
+passes; longest resting transition 0.3s. Frames with real timestamps across
+the assemble: dust at 10–30%, gathering at 50%, islands defined at 70%,
+tightening to 100%.
+
+**Tuning knob, not changed:** in-out plus the shader's own per-point delay
+means the first ~1.5s is mostly still dust. If Jan wants movement to start
+sooner, a softer in-out (`sine.inOut`) on the `uProgress` tween is the one
+change — the durations stay.
+
+**Trap for whoever re-tests this:** screenshots under SwiftShader at 2560×1800
+take long enough that a frame "at 4.4s" can land after 5.4s. Record the real
+timestamp per frame, or capture small clips.
+
+---
+
+## R18 — Touch: drag to part the islands (2026-09-17)
+
+Jan asked how phone and tablet visitors feel the pointer effect. They didn't:
+`archipelago-canvas.tsx` attached `pointermove` only under `(pointer: fine)`,
+so a touchscreen never moved `uMouse`. Touch users did already get the scroll
+drift and the fast-flick ripple on every page; those stay.
+
+**Decided (Jan): touch moves the islands only during the showcase.** Rejected,
+so neither gets re-proposed:
+
+- *Touch on every page, like the mouse* — every touch there is a scroll or a
+  link tap, the field sits at 0.35 × 0.6 = 21% behind opaque cards, and the
+  finger covers the spot it pushes. Mostly invisible, and it would run during
+  every scroll on the device the budget is written for.
+- *Device tilt* — Android works silently, but iOS requires a
+  motion-permission prompt from a tap. A permission dialog on a portfolio
+  reads as a red flag, and every visitor who declines gets nothing.
+
+### What was built
+
+- **Per event, not per device.** Pointer listeners are always attached and
+  branch on `e.pointerType`: `mouse` behaves exactly as before (still gated on
+  `pointerFine`); `touch`/`pen` moves the field only while the show is on.
+  A media query would misread a touch laptop or an iPad with a trackpad.
+- **`uReach` and `uPush` uniforms.** The mouse radius (1.05) bulges most of a
+  390px phone (~2.2 world units wide), so touch uses 0.6. `uPush` fades a
+  touch in and out.
+- **The hole appears where the finger lands.** `uMouse` eases toward its
+  target at 12% a frame from a parked position at (99, 99) — right for a
+  cursor entering from an edge, wrong for a finger landing mid-screen: the
+  hole would fly in from the top-right corner and fly back out on lift. Touch
+  instead copies the position straight into `uMouse` and fades `uPush` 0 → 1;
+  on lift it fades back to 0 and only then parks. (Never tween `uReach` to 0:
+  `smoothstep` with equal edges divides by zero.)
+- **Touch undoes the scroll drift** when mapping the finger, as `onAttract`
+  does, or the hole sits beside the finger on a scrolled phone page. The mouse
+  keeps its original mapping, deliberately unchanged.
+- `touch-action: none` and `overscroll-behavior: none` on `html.bg-showcase`
+  only. Without it the dimmed page scrolls under the drag, and once the
+  browser claims the gesture it fires `pointercancel` a few pixels in.
+- Ending the show with a finger still down releases the touch, so no hole is
+  left in the chain behind the returning page.
+- The hint reads "Assembling · tap to return", then **"Drag to part the
+  islands · tap to return"** once the field has formed, when the show was
+  started by touch; mouse wording is unchanged.
+
+### Three things found by testing, not by reading
+
+1. **Holding still counted as a tap.** The plan said "under 10px of travel is
+   a tap". A finger pressed on the islands and lifted moves almost nothing, so
+   holding it there to watch them part — the most natural way to play with
+   it — ended the show. A tap is now short **and** still: under 350ms and
+   under 10px. A click with no pointerdown before it (keyboard) is always a
+   tap.
+2. **The fingertip cut a hard empty disc.** Shrinking the radius to 0.6 but
+   keeping the mouse's push (0.42) pushed points 70% of the way out: a clean
+   empty circle with a piled-up rim, nothing like the soft dent the mouse
+   makes. The push now scales with the radius (`0.4 * uReach`; 0.42 at the
+   mouse's 1.05, so desktop is numerically identical).
+3. **A test that ran out the clock.** Two tablet checks failed because
+   full-page screenshots at 768×1024 are slow enough to push the sequence past
+   the show's 10s end — the checks were then measuring the returned page. Not
+   a code bug; confirmed by timing the drag alone (still on at 6.44s, ended at
+   10.0s as scheduled). Single-point measurements now screenshot a small clip.
+
+### Verified
+
+Real touch events through the browser's input pipeline (CDP
+`Input.dispatchTouchEvent`), measuring the field by counting point pixels in a
+circle around the finger, at 390×844 and 768×1024:
+
+- outside the show a drag scrolls the page normally (scrollY 0 → 235);
+- tap starts it; hints correct before and after the field forms;
+- finger down clears the field around it (e.g. 837 → 0 point px); the hole
+  follows an 80px drag (150 → 0);
+- the dimmed page does not scroll under the drag; an 80px drag does not end
+  the show; **press-and-hold then lift does not end it**;
+- 1.3s after lifting the islands are back — checked well inside the show at
+  ~7.5–7.9s: 1214 → 0 → 1246 on the tablet, 572 → 0 → 556 on the phone;
+- a quick tap still returns to the page; Escape with a finger still down ends
+  it and the next show has no leftover hole at that spot (882 vs 881);
+- mouse at 1280: repulsion still clears the field (2346 → 0), hint unchanged.
+
+The full R17 suite was re-run: every interaction check passes, including the
+tap over a nav link that must not navigate. (Its only "failures" were a
+regex in the test matching the "3s" inside "0.3s"; the resting values
+`0s | 0s | 0.3s | 0s` are correct. Fixed in the test.)
+
+**Not measured:** a real phone. SwiftShader proves the logic and the shape of
+the parting, not the frame rate under a dragging finger.
+
+---
+
 ## Budgets to re-check after each phase
 
 From CLAUDE.md: LCP < 2.0 s on 4G mid-range Android · CLS < 0.05 · INP < 200 ms

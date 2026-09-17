@@ -5,7 +5,15 @@ import { usePathname } from "next/navigation";
 import * as THREE from "three";
 import gsap from "gsap";
 import { buildPoints } from "@/lib/archipelago";
-import { BG_EVENT, D, E, type AttractDetail } from "@/lib/motion";
+import {
+  BG_EVENT,
+  D,
+  E,
+  E_INOUT,
+  SHOWCASE,
+  type AttractDetail,
+  type ShowcaseDetail,
+} from "@/lib/motion";
 import { DESKTOP_QUERY, panelScroller } from "@/lib/scroller";
 
 /**
@@ -41,6 +49,8 @@ const VERT = /* glsl */ `
   uniform vec2  uAttract;
   uniform float uPull;
   uniform float uRipple;
+  uniform float uReach;
+  uniform float uPush;
 
   attribute vec3  aTarget;
   attribute vec3  aScatter;
@@ -63,9 +73,16 @@ const VERT = /* glsl */ `
     pos.z += sin(uTime * 0.65 + aSeed * 12.0) * 0.05 * eased;
 
     // Pointer repulsion, damped by distance. Only meaningful once resolved.
+    // uReach is the radius (a mouse 1.05, a fingertip on a phone less);
+    // uPush fades a touch in and out in place. Never tween uReach to 0 —
+    // smoothstep with equal edges divides by zero.
+    // The push scales with the reach (0.42 at the mouse's 1.05), so a
+    // fingertip gets the same soft dent, only smaller. A fixed 0.42 in a 0.6
+    // radius pushed points 70% of the way out and cut a hard empty disc with
+    // a piled-up rim (R18, by eye).
     vec2 away = pos.xy - uMouse;
     float d = length(away);
-    float push = smoothstep(1.05, 0.0, d) * 0.42 * eased;
+    float push = smoothstep(uReach, 0.0, d) * 0.4 * uReach * uPush * eased;
     pos.xy += normalize(away + 0.0001) * push;
 
     // Lean toward the hovered card or button — a soft pull, never a snap.
@@ -125,6 +142,12 @@ function cssColor(name: string, fallback: string) {
 
 const FOV = 42;
 const CAM_Z = 6.2;
+
+/** Repulsion radius, in world units. A 390px phone is only ~2.2 units wide,
+ *  so the mouse radius would bulge most of the screen from one fingertip;
+ *  the touch radius is sized to clear the finger rather than hide under it. */
+const MOUSE_REACH = 1.05;
+const TOUCH_REACH = 0.6;
 
 /** Visible half-extent, in world units, at the z = 0 plane. */
 function halfExtent(aspect: number) {
@@ -192,6 +215,8 @@ export default function ArchipelagoCanvas() {
       uAttract: { value: new THREE.Vector2(0, 0) },
       uPull: { value: 0 },
       uRipple: { value: 0 },
+      uReach: { value: MOUSE_REACH },
+      uPush: { value: 1 },
       // World-scaled point size (÷ depth ≈ 6.2): ~2.6px on desktop, ~2.1px
       // on phones — present, but a background, not a feature.
       uSize: { value: mobile ? 13 : 16 },
@@ -228,22 +253,82 @@ export default function ArchipelagoCanvas() {
     });
 
     // ── pointer — from the window; the layer takes no pointer events ──
+    // A mouse parts the islands on every page, as it always has. A finger
+    // parts them only during the /lab showcase (R18): on an ordinary page
+    // every touch is a scroll or a link, the field is faint behind the cards,
+    // and the finger covers the push it causes. Decided per event by
+    // `pointerType`, never by media query — a touch laptop, or an iPad with a
+    // trackpad, sends both.
     const pointerFine = window.matchMedia("(pointer: fine)").matches;
     const mouseTarget = new THREE.Vector2(99, 99);
+    const OFF = 99;
+    // The showcase flag, read by the pointer handlers below and set by
+    // onShowcase further down.
+    let showing = false;
+    let touchId: number | null = null;
 
-    function onPointerMove(e: PointerEvent) {
+    function toField(e: PointerEvent, v: THREE.Vector2, undoDrift: boolean) {
       const { halfW, halfH } = halfExtent(aspect);
       const nx = (e.clientX / window.innerWidth) * 2 - 1;
       const ny = -((e.clientY / window.innerHeight) * 2 - 1);
-      mouseTarget.set(nx * halfW, ny * halfH);
+      // Touch undoes the field's scroll drift, as onAttract does, or the
+      // hole sits beside the finger on a scrolled phone page. The mouse keeps
+      // its original mapping so desktop behaves exactly as before.
+      v.set(nx * halfW, ny * halfH - (undoDrift ? points.position.y : 0));
+    }
+
+    // A touch fades in and out where the finger is. The mouse path eases
+    // uMouse toward its target from wherever it was, which is right for a
+    // cursor entering from an edge but, for a finger landing mid-screen, would
+    // fly the hole in from far off-screen and fly it back out on lift.
+    function releaseTouch() {
+      if (touchId === null) return;
+      touchId = null;
+      gsap.to(uniforms.uPush, {
+        value: 0,
+        duration: D.base,
+        ease: E_INOUT,
+        overwrite: true,
+        onComplete: () => {
+          mouseTarget.set(OFF, OFF);
+          uniforms.uMouse.value.set(OFF, OFF);
+          uniforms.uReach.value = MOUSE_REACH;
+          uniforms.uPush.value = 1;
+        },
+      });
+    }
+    function onPointerDown(e: PointerEvent) {
+      if (e.pointerType === "mouse" || !showing) return;
+      touchId = e.pointerId;
+      toField(e, mouseTarget, true);
+      uniforms.uMouse.value.copy(mouseTarget);
+      uniforms.uReach.value = TOUCH_REACH;
+      gsap.fromTo(
+        uniforms.uPush,
+        { value: 0 },
+        { value: 1, duration: D.fast, ease: E, overwrite: true },
+      );
+    }
+    function onPointerMove(e: PointerEvent) {
+      if (e.pointerType === "mouse") {
+        if (!pointerFine || touchId !== null) return;
+        uniforms.uReach.value = MOUSE_REACH;
+        toField(e, mouseTarget, false);
+        return;
+      }
+      if (showing && e.pointerId === touchId) toField(e, mouseTarget, true);
+    }
+    function onPointerUp(e: PointerEvent) {
+      if (e.pointerId === touchId) releaseTouch();
     }
     function onPointerOut(e: PointerEvent) {
-      if (!e.relatedTarget) mouseTarget.set(99, 99);
+      if (e.pointerType === "mouse" && !e.relatedTarget) mouseTarget.set(OFF, OFF);
     }
-    if (pointerFine) {
-      window.addEventListener("pointermove", onPointerMove, { passive: true });
-      document.addEventListener("pointerout", onPointerOut);
-    }
+    window.addEventListener("pointerdown", onPointerDown, { passive: true });
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+    window.addEventListener("pointerup", onPointerUp, { passive: true });
+    window.addEventListener("pointercancel", onPointerUp, { passive: true });
+    document.addEventListener("pointerout", onPointerOut);
 
     // ── scroll — a gentle drift, from whichever element scrolls ────────
     // Desktop: the panel (lib/scroller.ts). Below lg: the window. Scroll
@@ -322,9 +407,60 @@ export default function ArchipelagoCanvas() {
         overwrite: true,
       });
     }
+    // The /lab showcase. The shell has been dimmed out of the way, so the
+    // field comes up to near-full strength and resolves from nothing — the
+    // whole load-time resolve, not the 0.55 → 1 tail a page transition plays.
+    // `overwrite` on every tween: the route-change effect below animates the
+    // same opacity uniform, and two tweens on one property fight.
+    const SHOW_OPACITY = 0.95;
+    function onShowcase(e: Event) {
+      const on = (e as CustomEvent<ShowcaseDetail>).detail?.on ?? false;
+      if (on) {
+        showing = true;
+        pullTarget = 0;
+        gsap.to(uniforms.uOpacity, {
+          value: SHOW_OPACITY,
+          duration: SHOWCASE.in / 1000,
+          ease: E,
+          overwrite: true,
+        });
+        gsap.set(uniforms.uProgress, { value: 0, overwrite: true });
+        // In-out, not E: over five seconds expo.out lands the resolve in
+        // about one and then stalls. See SHOWCASE in lib/motion.ts.
+        gsap.to(uniforms.uProgress, {
+          value: 1,
+          duration: SHOWCASE.assemble / 1000,
+          ease: E_INOUT,
+          delay: SHOWCASE.in / 1000,
+        });
+        return;
+      }
+      if (!showing) return;
+      showing = false;
+      // A finger still down when the show ends must not leave a hole in the
+      // chain behind the returning page.
+      releaseTouch();
+      // Finish the resolve if the reader left early, so the field is never
+      // left half-formed behind the page.
+      gsap.to(uniforms.uProgress, {
+        value: 1,
+        duration: SHOWCASE.out / 1000,
+        ease: E_INOUT,
+        overwrite: true,
+      });
+      // Same duration and curve as the shell's return in tokens.css, so the
+      // field and the page cross-fade together.
+      gsap.to(uniforms.uOpacity, {
+        value: baseRef.current * levelRef.current,
+        duration: SHOWCASE.out / 1000,
+        ease: E_INOUT,
+        overwrite: true,
+      });
+    }
     window.addEventListener(BG_EVENT.attract, onAttract);
     window.addEventListener(BG_EVENT.scatter, onScatter);
     window.addEventListener(BG_EVENT.gather, onGather);
+    window.addEventListener(BG_EVENT.showcase, onShowcase);
 
     let hidden = document.hidden;
     const onVisibility = () => {
@@ -368,10 +504,12 @@ export default function ArchipelagoCanvas() {
       window.removeEventListener(BG_EVENT.attract, onAttract);
       window.removeEventListener(BG_EVENT.scatter, onScatter);
       window.removeEventListener(BG_EVENT.gather, onGather);
-      if (pointerFine) {
-        window.removeEventListener("pointermove", onPointerMove);
-        document.removeEventListener("pointerout", onPointerOut);
-      }
+      window.removeEventListener(BG_EVENT.showcase, onShowcase);
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
+      document.removeEventListener("pointerout", onPointerOut);
       geometry.dispose();
       material.dispose();
       renderer.dispose();

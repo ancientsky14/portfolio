@@ -146,7 +146,12 @@ export default function RootLayout({
             Everything that listens to scroll asks lib/scroller.ts which
             element that is. The panel holds a single child on purpose:
             Lenis needs a wrapper (the panel) and one content element. */}
-        <div className="flex min-h-dvh flex-col lg:h-dvh lg:min-h-0 lg:flex-row lg:overflow-hidden">
+        {/* data-showcase-dim: stepped aside, and made inert, while the /lab
+            showcase plays (components/lab/bg-replay.tsx). */}
+        <div
+          data-showcase-dim
+          className="flex min-h-dvh flex-col lg:h-dvh lg:min-h-0 lg:flex-row lg:overflow-hidden"
+        >
           <MobileBar avatarSrc={avatar} />
           <Rail avatarSrc={avatar} />
 

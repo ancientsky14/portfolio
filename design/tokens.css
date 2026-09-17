@@ -1195,6 +1195,83 @@ html.is-intro [data-intro="tabbar"] {
 html[data-archipelago="live"] .bg-live-only {
   display: inline-flex;
 }
+
+/* ── Archipelago showcase (components/lab/bg-replay.tsx) ─────────────
+   "Watch it assemble" steps the interface aside so the field can be seen:
+   everything marked `data-showcase-dim` recedes to 8% and stops taking
+   pointer events, and the canvas behind it comes up to near-full strength.
+   Dim, not gone — a blank window for two seconds reads as a crash, and the
+   faint page keeps the reader oriented (Jan, 2026-09-16).
+
+   Opacity only, deliberately. A transform on the shell would make it the
+   containing block for its `position: fixed` descendants — the work viewer,
+   the command palette — which is the ScrollSmoother failure CLAUDE.md
+   already records, and the reason the canvas lives outside the panel.
+
+   Durations mirror SHOWCASE in lib/motion.ts: 0.4s out on --ease-out,
+   stepping aside at once; 3s back on --ease-in-out. The curve matters as
+   much as the time — on --ease-out a 3s return looks finished in under one.
+
+   The transitions live ONLY on the two state classes, never on the resting
+   element. The boot intro fades these same elements in with its own
+   transition (`[data-intro="tabbar"]`); a showcase transition on the resting
+   state out-ranked it and slowed the tab bar's first-visit entrance — it did
+   at 0.8s, and at 3s it would crawl. `bg-showcase-return` is added by
+   bg-replay.tsx for the length of the return and then removed. The tab bar
+   restates its own transform transition (or the slide-away breaks) and zeroes
+   the intro's 0.26s delay (or its dim lags behind the rest).
+
+   The whole thing is moot under reduced motion: the canvas never mounts, so
+   the button never shows. */
+html.bg-showcase [data-showcase-dim] {
+  opacity: 0.08;
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease-out);
+  transition-delay: 0s;
+}
+html.bg-showcase .tabbar[data-showcase-dim] {
+  transition:
+    transform 0.3s var(--ease-out),
+    opacity 0.4s var(--ease-out);
+  transition-delay: 0s;
+}
+html.bg-showcase-return [data-showcase-dim] {
+  transition: opacity 3s var(--ease-in-out);
+  transition-delay: 0s;
+}
+html.bg-showcase-return .tabbar[data-showcase-dim] {
+  transition:
+    transform 0.3s var(--ease-out),
+    opacity 3s var(--ease-in-out);
+  transition-delay: 0s;
+}
+
+/* During the show a finger drags the islands apart (R18), so the dimmed page
+   must not scroll under it — and once the browser claims a drag as a scroll
+   it fires pointercancel, which would cut the touch stream off a few pixels
+   in. Taps are not affected by touch-action, so the exit and tap-to-return
+   still work. Scoped to the show; ordinary scrolling is never touched. */
+html.bg-showcase,
+html.bg-showcase body {
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+/* The one control that stays visible: the exit, portalled to <body> so no
+   dimmed ancestor carries it down to 8%. */
+.showcase-exit {
+  position: fixed;
+  inset-inline: 0;
+  bottom: max(1.5rem, env(safe-area-inset-bottom));
+  z-index: 70;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  animation: gallery-fade 0.4s var(--ease-out) both;
+}
+.showcase-exit > * {
+  pointer-events: auto;
+}
 /* ── Select — the designed dropdown's list (components/ui/select.tsx) ──
    A quick fade and rise from the field; from above when it opens upward.
    Reduced motion (OS or the site's panel) removes it with every other

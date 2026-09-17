@@ -17,6 +17,7 @@ import { labNoteLd } from "@/lib/structured-data";
 import { JsonLd } from "@/components/site/json-ld";
 import { mdxComponents } from "@/components/mdx/mdx-components";
 import { ToolIcon } from "@/components/icons/tool-icon";
+import { BgReplay } from "@/components/lab/bg-replay";
 
 /**
  * A lab note — the same shape as a case study (app/work/[slug]/page.tsx),
@@ -93,6 +94,14 @@ export default async function LabNote({
           <p className="mt-3 max-w-2xl text-lg text-text-2">{e.subtitle}</p>
         ) : null}
         <p className="mt-8 max-w-2xl leading-relaxed text-text-2">{e.blurb}</p>
+        {/* The note is about the background itself, so let the reader watch
+            it. The wrapper is gated the same way as the button, or a phone
+            without the canvas would get an empty 32px gap here. */}
+        {e.slug === "archipelago" ? (
+          <div className="bg-live-only mt-8">
+            <BgReplay />
+          </div>
+        ) : null}
       </header>
 
       <div className="grid gap-12 px-5 py-14 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,19rem)] lg:gap-16 lg:px-12">

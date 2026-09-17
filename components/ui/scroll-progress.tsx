@@ -14,5 +14,5 @@
  */
 
 export function ScrollProgress() {
-  return <div aria-hidden="true" className="scroll-progress" />;
+  return <div aria-hidden="true" data-showcase-dim className="scroll-progress" />;
 }

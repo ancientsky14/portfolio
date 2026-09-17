@@ -103,6 +103,8 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
 | R14 | Asset weight — LMIS tour 7.4→2.9MB, tool mark −50% | **partial** 2026-09-16: `public/` 13.9→9.7MB. **sentro's tour is 48% blank and needs re-recording** — `UPCOMING-FEATURES.md` "R14" |
 | R15 | /about was clipping 152px of itself; the overflow check that missed it | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R15" |
 | R16 | Socials once per viewport — rail from lg, footer below it | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R16" |
+| R17 | Archipelago showcase — the shell steps aside, the field resolves from nothing | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R17" |
+| R18 | Touch — drag to part the islands during the showcase | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R18" |
 | R9 | Hardening — budgets, keyboard + contrast pass (OG image done in `UPCOMING-FEATURES.md` Phase 1) | **partial** 2026-09-14: a11y 100, JS/CLS met; LCP 2.2–2.6s, Performance 70–79, real Android unmeasured. R9b profiled it: the floor is Next/React hydration, not site code — `UPCOMING-FEATURES.md` "R9", "R9b" |
 
 ### The shell
@@ -211,6 +213,40 @@ with the panel's scroll. Without it the page is the plain ground; the hero
 keeps its colour wash. The islands are procedural
 and are **not** a map of the Philippines — see the header comment in
 `lib/archipelago.ts` before changing that.
+
+**The showcase** (R17, 2026-09-17). "Watch it assemble" on `/lab` and
+`/lab/archipelago` (`components/lab/bg-replay.tsx`) dims everything marked
+`data-showcase-dim` to 8% and makes it `inert`, sends `BG_EVENT.showcase`,
+and the canvas comes up to 0.95 and resolves from nothing; timings are
+`SHOWCASE` in `lib/motion.ts` — a 10s show (0.4 out, 5 assemble, 4.6 hold)
+and a 3s return, Jan's timing 2026-09-17. The assemble and the return ease
+**in-out** (`E_INOUT`, `--ease-in-out`): on expo.out a 5s assemble reads as a
+1s snap and a 3s return as done in under one. The return transition lives
+only on the short-lived `bg-showcase-return` class, never on the resting
+element — a resting transition out-ranks the boot intro's own
+`[data-intro="tabbar"]` fade and slows the tab bar's first-visit entrance.
+Dim, never blank — Jan's call. Mark any new
+piece of fixed chrome `data-showcase-dim`, or it will sit at full strength
+over the show and stay tabbable. Two rules the tests hold it to: the exit is
+portalled to `<body>` and returns focus to the trigger, and a dismissing tap
+listens for `click` in capture, **not** `pointerdown` — pointerdown restored
+the shell before the click landed, which navigated to whatever link was
+under the finger. Opacity only on the shell: a transform would capture its
+`position: fixed` descendants. The island placement is unchanged.
+
+**Touch parts the islands only during the showcase** (R18, Jan's call). On an
+ordinary page every touch is a scroll or a link, the field is faint behind the
+cards, and the finger hides the push — touch users there keep the scroll drift
+and the flick ripple. Rules the code holds to: mouse vs touch is decided **per
+event by `pointerType`**, never a media query (touch laptops send both); a
+touch fades in and out *in place* via `uPush` rather than easing `uMouse` from
+off-screen, which flew the hole in from a corner; the push scales with
+`uReach`, so a fingertip gets the mouse's soft dent rather than a hard empty
+disc; `touch-action: none` is scoped to `html.bg-showcase`, or the browser
+claims the drag as a scroll and cancels the touch stream. And **a tap is short
+AND still** (<350ms, <10px) — holding a finger on the islands and lifting it
+used to count as a tap and end the show. Device tilt was rejected: iOS
+requires a motion-permission prompt.
 
 ## Conventions
 

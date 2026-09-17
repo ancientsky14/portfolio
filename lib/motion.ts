@@ -44,14 +44,44 @@ export const STAGGER = {
  *   gather  — the new page is in: the field resolves again.
  *   attract — `detail` is the centre, in client px, of the card or button
  *             under the pointer (the islands lean toward it), or null.
+ *   showcase — `detail.on`: the /lab "Watch it assemble" button has cleared
+ *             the shell, so the field brightens and resolves from nothing;
+ *             off returns it to the page's level (components/lab/bg-replay.tsx).
  */
 export const BG_EVENT = {
   scatter: "bg:scatter",
   gather: "bg:gather",
   attract: "bg:attract",
+  showcase: "bg:showcase",
 } as const;
 
 export type AttractDetail = { x: number; y: number } | null;
+export type ShowcaseDetail = { on: boolean };
+
+/**
+ * The showcase sequence, in ms. Shared by the button that runs it and the
+ * canvas that plays it, the same way INTRO is shared below — two files that
+ * must agree on one timeline.
+ *
+ * The show runs ten seconds (in + assemble + hold) and the interface takes
+ * three to come back — Jan's timing, 2026-09-17.
+ *
+ * `assemble` is deliberately NOT the canvas's load-time resolve (`D.slow *
+ * 1.4`, 1.68s). It used to be derived from it; they now differ on purpose —
+ * a page load must resolve fast, the showcase is meant to be watched. Don't
+ * re-link them.
+ *
+ * These durations only feel as long as they are because the assemble and the
+ * return ease in-out (E_INOUT, --ease-in-out). On expo.out, 90% of the
+ * movement lands in the first fifth: a 5s assemble read as a 1s snap and a
+ * stall, a 3s return as done in under one.
+ */
+export const SHOWCASE = {
+  in: 400,
+  assemble: 5000,
+  hold: 4600,
+  out: 3000,
+} as const;
 
 /**
  * Boot intro timing, in ms from navigation start (components/motion/boot-intro.tsx).

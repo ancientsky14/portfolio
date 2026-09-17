@@ -109,6 +109,7 @@ export function TabBar() {
     <nav
       aria-label="Main"
       data-intro="tabbar"
+      data-showcase-dim
       className={cn("tabbar fixed inset-x-3 bottom-3 z-40 lg:hidden", away && "tabbar--away")}
       style={{ marginBottom: "env(safe-area-inset-bottom)" }}
     >

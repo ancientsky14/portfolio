@@ -131,6 +131,7 @@ export function A11yPanel() {
   return (
     <div
       ref={wrap}
+      data-showcase-dim
       className="fixed bottom-24 right-4 z-50 lg:bottom-5 lg:left-6 lg:right-auto"
     >
       {open ? (
