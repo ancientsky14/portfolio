@@ -1882,6 +1882,43 @@ contact preflight gave 204 and `/count` gave 200, each with that
   the new URL.
 
 ---
+
+## R28 — Every old link redirects; Dependabot's majors (2026-09-17)
+
+### The capital P and the bare domain
+
+After R27, `/portfolio/…` redirected, but `ancientsky14.github.io/Portfolio/…`
+and `ancientsky14.github.io/` still got GitHub's 404. Both belong to the
+*account-level* Pages site, and none existed. **A new public repo,
+`ancientsky14/ancientsky14.github.io`**, serves the same redirect as
+`index.html` and `404.html`, plus `.nojekyll` and a README saying what it's
+for. GitHub enabled Pages on it by itself, and it was built within ~20s. The
+`portfolio` project site keeps priority for lowercase `/portfolio/…`.
+
+Verified in a real browser: `/`, `/Portfolio/`, `/Portfolio/work/sentro/`,
+`/portfolio/contact/` and `/portfolio/work/mgb-ebudget/` on github.io each
+landed on the matching workers.dev page.
+
+**If the site URL changes, update both redirects**: `redirect/index.html` here
+and the two HTML files in that repo.
+
+### Dependabot
+
+Jan merged **#11** (minor/patch: next 16.3.5, lucide-react, tailwind-merge and
+two more). Its deploy passed and the live site kept 200 with CSP and HSTS.
+Still open, all **majors**, held for a deliberate upgrade session:
+
+- **#1–#4:** the GitHub Actions (checkout 7, setup-node 7,
+  upload-pages-artifact 5, deploy-pages 5). Bump the two Pages actions
+  together.
+- **#7, #9, #10:** TypeScript 5.9 → 7. The native compiler rewrite; check
+  `next build`'s type step and `tsc --noEmit` in all three packages first.
+- **#8:** motion 12 → 13. Check the library components that use it.
+- **#6** `@types/node` 22 → 26 was **closed**. Those types describe APIs the
+  Node 22 runtime lacks. `dependabot.yml` now ignores its majors, so bump it
+  by hand together with `node-version` in `deploy.yml`.
+
+---
 ## Budgets to re-check after each phase
 
 From CLAUDE.md: LCP < 2.0 s on 4G mid-range Android · CLS < 0.05 · INP < 200 ms

@@ -111,6 +111,7 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
 | R22 | Lab "Try it" demos + "In short" — built, then **reverted by Jan** the same day | **reverted** 2026-09-17, `UPCOMING-FEATURES.md` "R22–R23" — don't rebuild without asking |
 | R24 | Security — CI least privilege + SHA pins + Dependabot, meta CSP, Worker rate limits and a daily send cap | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R24" — Workers need `wrangler deploy`; account checklist is Jan's |
 | R27 | Hosting → Cloudflare static assets for real security headers (`_headers` from `lib/csp.ts`) | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R27" — live on workers.dev; github.io redirects. Workers need a redeploy to drop the github.io origin |
+| R28 | Every old link redirects (user-site repo for `/Portfolio/` and the bare domain); Dependabot ignores `@types/node` majors | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R28" — major PRs #1–#4, #7–#10 held for an upgrade session |
 | R25 | Security follow-up — frame guard, per-IP daily visit cap, secret scanning + push protection | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R25" — visits needs remote migration 0004 then deploy; Cloudflare 2FA + scoped token are Jan's |
 | R9 | Hardening — budgets, keyboard + contrast pass (OG image done in `UPCOMING-FEATURES.md` Phase 1) | **partial** 2026-09-14: a11y 100, JS/CLS met; LCP 2.2–2.6s, Performance 70–79, real Android unmeasured. R9b profiled it: the floor is Next/React hydration, not site code — `UPCOMING-FEATURES.md` "R9", "R9b" |
 
@@ -313,9 +314,12 @@ can send real security headers; Pages can't. The live site is
 nothing bypasses `_headers`), built with no base path. GitHub Pages
 (`https://ancientsky14.github.io/portfolio/`) now serves only `redirect/`,
 published as `index.html` and `404.html`, which sends any `/portfolio/…`
-link to the same path on workers.dev. It can't catch `/Portfolio/` (capital
-P), which has 404'd at GitHub since the 2026-09-14 rename. A header scanner
-pointed there grades GitHub's 404 page, not this site. `NEXT_PUBLIC_BASE_PATH`
+link to the same path on workers.dev. `/Portfolio/…` (capital P) and the bare
+`ancientsky14.github.io/` fall to the account-level site, so a separate public
+repo, **`ancientsky14/ancientsky14.github.io`** (R28), serves the same redirect
+as its `index.html` and `404.html`. If the site URL ever changes, update both
+repos. A header scanner pointed at any github.io address grades a redirect
+page, not this site. `NEXT_PUBLIC_BASE_PATH`
 support stays in the code but is unused.
 
 - **Headers live in `out/_headers`**, written by `app/%5Fheaders/route.ts`
