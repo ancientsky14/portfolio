@@ -106,6 +106,7 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
 | R17 | Archipelago showcase — the shell steps aside, the field resolves from nothing | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R17" |
 | R18 | Touch — drag to part the islands during the showcase | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R18" — verified on a real Android phone |
 | R19 | Touch parts the islands on every page — touch events, so it survives a scroll | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R19" |
+| R20 | /lab chips on one line; no GitHub source links — **the portfolio repo is still public** | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R20" |
 | R9 | Hardening — budgets, keyboard + contrast pass (OG image done in `UPCOMING-FEATURES.md` Phase 1) | **partial** 2026-09-14: a11y 100, JS/CLS met; LCP 2.2–2.6s, Performance 70–79, real Android unmeasured. R9b profiled it: the floor is Next/React hydration, not site code — `UPCOMING-FEATURES.md` "R9", "R9b" |
 
 ### The shell

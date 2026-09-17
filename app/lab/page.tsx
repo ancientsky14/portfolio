@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { getAllLab, QUEUED, type LabKind } from "@/lib/lab";
-import { latestRelease, RELEASES_REPO } from "@/lib/releases";
+import { latestRelease } from "@/lib/releases";
 import { ToolIcon } from "@/components/icons/tool-icon";
 import { BgReplay } from "@/components/lab/bg-replay";
 
@@ -53,11 +53,14 @@ const DATE = new Intl.DateTimeFormat("en-PH", {
 function Stack({ tools }: { tools?: string[] }) {
   if (!tools?.length) return null;
   return (
-    <ul className="flex flex-wrap gap-1.5">
+    // Tighter below sm so a row of three fits one line on a phone: at 375px
+    // the default spacing ran 2–16px over and wrapped (R20). Icons, text size
+    // and chip height are unchanged; from sm up nothing changes.
+    <ul className="flex flex-wrap gap-1 sm:gap-1.5">
       {tools.map((t) => (
         <li
           key={t}
-          className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface py-1 pl-2 pr-2.5 font-mono text-2xs text-text-2"
+          className="inline-flex items-center gap-1 rounded-full border border-line bg-surface py-1 pl-1.5 pr-2 font-mono text-2xs text-text-2 sm:gap-1.5 sm:pl-2 sm:pr-2.5"
         >
           <ToolIcon name={t} size={12} brand />
           {t}
@@ -151,9 +154,14 @@ export default async function Lab() {
                   className="grid grid-cols-2 gap-px border-t border-line bg-line xl:border-l xl:border-t-0"
                 >
                   {featured.facts.map((f) => (
+                    // Top-aligned below xl: on a narrow phone some labels
+                    // wrap to two lines, and bottom-pinning pushed the
+                    // one-line cell's number ~22px below its neighbour's.
+                    // From xl the cells are tall and every label fits one
+                    // line, so the numbers sit at the bottom by design.
                     <div
                       key={f.label}
-                      className="flex flex-col justify-end bg-surface-2 p-6"
+                      className="flex flex-col justify-start bg-surface-2 p-6 xl:justify-end"
                     >
                       <dt className="order-2 mt-1 text-sm text-text-3">
                         {f.label}
@@ -226,38 +234,33 @@ export default async function Lab() {
           </ul>
         ) : null}
 
-        {/* ── the release feed, live at build time ─────────────── */}
+        {/* ── the latest release, read at build time ──────────── */}
+        {/* Information only, no link (Jan, 2026-09-17, R20): no GitHub links
+            on the site, so neither the repo name nor a "View release".
+            Three rows on a phone — icon + label, name, date — where one
+            wrapped line ran the repo name down five lines. From sm the icon
+            takes its own column and the three lines sit beside it. */}
         {release ? (
-          <a
+          <div
             data-reveal
-            href={release.url}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="group mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-lg border border-line bg-surface p-5 shadow-soft transition-colors hover:border-accent sm:p-6"
+            className="mt-6 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-lg border border-line bg-surface p-5 shadow-soft sm:gap-x-5 sm:p-6"
           >
-            <span className="grid size-10 shrink-0 place-items-center rounded-md bg-accent-soft text-accent">
+            <span className="grid size-10 shrink-0 place-items-center rounded-md bg-accent-soft text-accent sm:row-span-3">
               <PackageCheck size={19} strokeWidth={1.75} aria-hidden="true" />
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-mono text-2xs uppercase tracking-widest text-text-3">
-                Latest signed release · from {RELEASES_REPO}
-              </span>
-              <span className="mt-1 block font-semibold text-text">
-                {release.name}
-                <span className="font-normal text-text-3">
-                  {" "}
-                  &middot; published{" "}
-                  <time dateTime={release.publishedAt}>
-                    {DATE.format(new Date(release.publishedAt))}
-                  </time>
-                </span>
-              </span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-2 transition-colors group-hover:text-accent">
-              View release
-              <ArrowUpRight size={15} strokeWidth={2} aria-hidden="true" />
-            </span>
-          </a>
+            <p className="font-mono text-2xs uppercase tracking-widest text-text-3">
+              Latest signed release
+            </p>
+            <p className="col-span-2 mt-2 font-semibold text-text sm:col-span-1 sm:col-start-2 sm:mt-0">
+              {release.name}
+            </p>
+            <p className="col-span-2 text-sm text-text-3 sm:col-span-1 sm:col-start-2">
+              Published{" "}
+              <time dateTime={release.publishedAt}>
+                {DATE.format(new Date(release.publishedAt))}
+              </time>
+            </p>
+          </div>
         ) : null}
       </section>
 

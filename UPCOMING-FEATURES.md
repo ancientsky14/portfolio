@@ -1382,6 +1382,80 @@ that a formality, but the emulator is not the device.
 
 ---
 
+## R20 — /lab: chips on one line, no GitHub source links (2026-09-17)
+
+### The source links — and what removing them does NOT do
+
+Jan asked to remove "Source — public repo" because he doesn't want to share
+his source code. Removed by deleting the `source:` block from
+`content/lab/01-archipelago.mdx` (it pointed to `ancientsky14/portfolio`) and,
+at his request, from `02-signed-releases.mdx` (`ancientsky14/mgb-ebudget-releases`).
+`source` is optional in `lib/lab.ts` and both renderers skip it, so no
+component changed.
+
+**The portfolio repo is still public** (`gh repo view` → `PUBLIC`, listed on
+the GitHub profile the rail links to). Removing the link hid a pointer, not the
+code. Jan decided that knowingly. Making it private was offered and declined:
+GitHub Pages won't serve a private repo on a free account, so the live site
+would go down. The alternatives are GitHub Pro, or moving to Cloudflare Pages,
+which serves private repos free and which Jan already uses for Workers. If he
+changes his mind, plan that as its own task. The repo holds no client source
+(eBudget, eTracker, LMIS and SENTRO are private) and no secrets (Worker secrets
+live in Cloudflare).
+
+**`mgb-ebudget-releases` must stay public regardless:** it holds installers
+only, and eBudget downloads its updates from it.
+
+**The last two links went the same day, at Jan's request** — found while
+verifying the first removal and raised with him rather than removed unasked:
+
+- `/lab`'s "Latest signed release" card is now **information only**: no link,
+  no repo name, no "View release". The release is still read at build time by
+  `lib/releases.ts`. Its layout changed with it: on a phone the old single
+  wrapped line ran "ancientsky14/mgb-ebudget-releases" down five lines, so it
+  is now three rows — icon + label, name, date — as a grid with a base
+  `grid-cols-[auto_minmax(0,1fr)]` (the R15 rule). From `sm` the icon takes
+  its own column and the three lines sit beside it.
+- The eBudget case study's release-feed link: `cleared: false` on its `live:`
+  entry, the designed off-switch in `lib/live.ts`, so the record stays. One
+  change removes it from the case-study header, its sidebar, the `/work`
+  viewer and the JSON-LD.
+
+**No page links to either repo now.** Grepping every built HTML, RSC, JSON and
+XML file for both repo URLs finds nothing. The GitHub *profile* link in the
+rail and footer is intentionally still there, on all 20 pages. The release card
+has no links and doesn't overflow at 360/390/640/1280, and the eBudget case
+study shows no empty "Live" block.
+
+**Stale, not changed:** the eBudget case study's frontmatter says
+`version: "1.0.11"` while the latest release is 1.0.12. That's Jan's content to
+update.
+
+Verified: zero links to either repo on `/lab/archipelago/` and
+`/lab/signed-releases/`; no "Source — public repo" / "Update feed — public repo"
+text anywhere in the built lab pages; no gap left in the featured card's button
+row or the note sidebar (screenshots at 390 and 1280); the rail's GitHub
+profile icon untouched.
+
+### The stack chips
+
+Every chip row on `/lab` wrapped on narrow phones, not only the circled one:
+19/17/31px over at 360, 4/2/16px over at 375. `Stack` in `app/lab/page.tsx` is
+now tighter below `sm`, with smaller gaps and chip padding, while icons, brand
+colours, text size and chip height stay the same.
+
+| width | Three.js row | Tauri row | PocketBase row |
+|---|---|---|---|
+| 360 | 1 line | 1 line | **2 lines (+9px)** |
+| 375 – 1280 | 1 line | 1 line | 1 line |
+
+The PocketBase row still wraps at 360 **by Jan's choice**: guaranteeing one
+line there meant hiding the icons on the narrowest phones, and he kept them.
+Chip widths at 640 and 1280 are identical to before, so desktop is unchanged.
+The `/lab/[slug]` sidebar chips already fit at every width and were left alone.
+
+---
+
 ## Budgets to re-check after each phase
 
 From CLAUDE.md: LCP < 2.0 s on 4G mid-range Android · CLS < 0.05 · INP < 200 ms
