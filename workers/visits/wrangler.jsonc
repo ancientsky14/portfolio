@@ -14,6 +14,19 @@
 			"migrations_dir": "migrations"
 		}
 	],
+	// Flood shield for POST /hit and /view (R23): thirty writes a minute per IP,
+	// keyed by a salted hash. Generous on purpose — an office shares one IP.
+	// Period must be 10 or 60. The contact Worker uses 2001; never share an id.
+	"ratelimits": [
+		{
+			"name": "HIT_LIMITER",
+			"namespace_id": "2002",
+			"simple": {
+				"limit": 30,
+				"period": 60
+			}
+		}
+	],
 	"vars": {
 		// Who may read the count (GET /count).
 		"READ_ORIGINS": "https://ancientsky14.github.io,http://localhost:3000",

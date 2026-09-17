@@ -1,7 +1,7 @@
 # Portfolio — project instructions
 
 Personal portfolio for Jan Luigi Rivera. Positioning (changed 2026-09-10):
-**full-stack product developer — web apps, desktop apps, multi-site
+**full-stack developer — web apps, desktop apps, multi-site
 platforms**. Audience: businesses and startups, employers and recruiters, and
 any client including government — but government is *where he started*, not
 the niche. Lead with what was engineered, never with who bought it.
@@ -107,6 +107,10 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
 | R18 | Touch — drag to part the islands during the showcase | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R18" — verified on a real Android phone |
 | R19 | Touch parts the islands on every page — touch events, so it survives a scroll | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R19" |
 | R20 | /lab chips on one line; no GitHub source links — **the portfolio repo is still public** | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R20" |
+| R21 | The three lab notes published — stale facts fixed, engineering-first wording | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R21" |
+| R22 | Lab "Try it" demos + "In short" — built, then **reverted by Jan** the same day | **reverted** 2026-09-17, `UPCOMING-FEATURES.md` "R22–R23" — don't rebuild without asking |
+| R24 | Security — CI least privilege + SHA pins + Dependabot, meta CSP, Worker rate limits and a daily send cap | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R24" — Workers need `wrangler deploy`; account checklist is Jan's |
+| R25 | Security follow-up — frame guard, per-IP daily visit cap, secret scanning + push protection | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R25" — visits needs remote migration 0004 then deploy; Cloudflare 2FA + scoped token are Jan's |
 | R9 | Hardening — budgets, keyboard + contrast pass (OG image done in `UPCOMING-FEATURES.md` Phase 1) | **partial** 2026-09-14: a11y 100, JS/CLS met; LCP 2.2–2.6s, Performance 70–79, real Android unmeasured. R9b profiled it: the floor is Next/React hydration, not site code — `UPCOMING-FEATURES.md` "R9", "R9b" |
 
 ### The shell
@@ -345,6 +349,41 @@ days, no cookies:
   browser and is matched by shape in `okPath`, so a new case study needs no
   Worker deploy — keep it that way rather than listing slugs.
 
+### Security (R24, 2026-09-17)
+
+- **CSP is a `<meta>` built in `lib/csp.ts`**, first in `<head>`, production
+  builds only. **Anything the browser loads from a new origin — script, fetch,
+  iframe, font, image — must be added there**, or it works in `npm run dev`
+  and is blocked only on the built site. It allows `'unsafe-inline'` scripts
+  (the export's inline RSC payloads), so its value is `connect-src`,
+  `frame-src`, `object-src` and `base-uri`, not XSS blocking. The form's
+  no-JS `action="mailto:"` is why `form-action` lists `mailto:`.
+- **Clickjacking is handled in the page (R25)**: a meta CSP ignores
+  `frame-ancestors` and Pages sends no headers, so `FRAME_GUARD` in
+  `app/layout.tsx` sets `html.is-framed` when framed and `.framed-notice` in
+  `design/tokens.css` hides everything else. Localhost is exempt; production
+  builds only. Anything added as a direct child of `<body>` is hidden when
+  framed — that is the point, don't exempt it. Bypass: a sandboxed frame with
+  scripts off, where nothing that sends can run anyway.
+- **CI**: `permissions: {}` at the top; only the deploy job holds `pages` and
+  `id-token`, because the build job runs `npm ci`. Actions are pinned to commit
+  SHAs; `.github/dependabot.yml` bumps them and all three `package.json`s.
+  Keep new actions SHA-pinned.
+- **The contact Worker sends from Jan's personal Gmail (his call)**, so it has
+  a global `DAILY_CAP` (20 per 24h, answered with 503 so the form offers the
+  mail-app fallback) plus a `SEND_LIMITER` rate-limit binding (5/min per salted
+  IP hash, before the body is read). The visits Worker has `HIT_LIMITER`
+  (30/min — offices share an IP) and, since R25, a per-IP daily cap
+  (`IP_DAY_CAP` = 20 distinct visitors, per path for `/view`) enforced inside
+  the INSERT through a salted per-day `ip` hash (migration 0004 — apply it
+  remotely **before** deploying that Worker). Namespace ids 2001/2002 are
+  account-wide; never reuse one.
+- **Accounts (2026-09-17)**: secret scanning + push protection turned on via
+  `gh api`; Dependabot alerts/security updates and the `github-pages`
+  branch policy (`portfolio` only) were already on. No Cloudflare token is
+  stored in GitHub. Wrangler on the office PC was logged in with a
+  full-account OAuth token — see `UPCOMING-FEATURES.md` "R25" for replacing it.
+
 ### Share cards, search-engine data, booking (2026-09-14)
 
 - **Share cards** are `app/og/[card]/route.tsx` → `out/og/site.png`,
@@ -458,6 +497,11 @@ Still open:
    link is set (2026-09-14).
 3. Any testimonial at all — if none, keep the section cut rather than fake it.
 4. Case-study bodies: `bodyReviewed: true` only once Jan has read each draft.
+   **The three lab notes were published 2026-09-17** on Jan's read (R21). Two
+   caveats a future session must not lose: the tenant-isolation note could not
+   be re-verified that day (the SENTRO repo is not on the office PC), and
+   Archipelago's "Watch it assemble" and "A finger, not a cursor" sections
+   were written after his read — facts verified, voice not yet reviewed.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

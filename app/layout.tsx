@@ -10,6 +10,7 @@ import { PanelFooter } from "@/components/shell/panel-footer";
 import { PageMotionLazy } from "@/components/motion/page-motion-lazy";
 import { ScrollProgress } from "@/components/ui/scroll-progress";
 import { SITE } from "@/lib/site";
+import { contentSecurityPolicy } from "@/lib/csp";
 import { INTRO } from "@/lib/motion";
 import { avatarSrc } from "@/lib/avatar";
 import { openGraphFor } from "@/lib/og";
@@ -48,14 +49,37 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
-    default: "Jan Luigi Rivera — Full-stack product developer",
+    default: "Jan Luigi Rivera — Full-stack developer",
     template: "%s · Jan Luigi Rivera",
   },
   description: `${SITE.line} ${SITE.sub}`,
   // The site card (app/og), inherited by every page without its own.
   openGraph: openGraphFor("site", `${SITE.name} — ${SITE.line}`),
   twitter: { card: "summary_large_image" },
+  // Other sites see the origin only, never which page linked them (R23).
+  referrer: "strict-origin-when-cross-origin",
 };
+
+/**
+ * Frame guard (R25) — clickjacking protection without headers. GitHub Pages
+ * cannot send X-Frame-Options or `frame-ancestors`, and a meta CSP ignores
+ * the latter, so the page protects itself: framed by anything, it marks
+ * `html.is-framed` before paint, and design/tokens.css hides everything but
+ * the notice. The framing site cannot remove a class from a cross-origin
+ * document.
+ *
+ * The bypass is a sandboxed frame with scripts disabled. Then this does not
+ * run, but neither does anything worth tricking a click into: the brief form
+ * sends only through Turnstile, which needs scripts. Localhost is exempt so
+ * a local preview inside an editor's browser pane still works.
+ */
+const FRAME_GUARD = `
+try{
+  if(window.top!==window.self && !/^(localhost|127\\.0\\.0\\.1)$/.test(location.hostname)){
+    document.documentElement.classList.add('is-framed');
+  }
+}catch(e){ document.documentElement.classList.add('is-framed'); }
+`;
 
 /**
  * Theme boot. Runs before first paint so a returning dark-theme visitor
@@ -96,12 +120,30 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
+        {/* First in <head>: a meta CSP covers only what is parsed after it.
+            Production only — see lib/csp.ts. */}
+        {process.env.NODE_ENV === "production" ? (
+          <>
+            <meta httpEquiv="Content-Security-Policy" content={contentSecurityPolicy()} />
+            <script dangerouslySetInnerHTML={{ __html: FRAME_GUARD }} />
+          </>
+        ) : null}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <JsonLd data={personLd(avatar)} />
       </head>
       <body
         className={`${display.variable} ${sans.variable} ${mono.variable} min-h-dvh bg-ground text-text antialiased`}
       >
+        {/* Shown only inside another site's frame (FRAME_GUARD above). */}
+        <div className="framed-notice p-6 text-center">
+          <p className="max-w-sm text-base text-text-2">
+            This page is being shown inside another website.{" "}
+            <a href={SITE.url} target="_top" className="font-medium text-accent underline">
+              Open {SITE.name}&rsquo;s site directly
+            </a>
+            .
+          </p>
+        </div>
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-sm focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-ink"

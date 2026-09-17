@@ -14,7 +14,7 @@ stack: ["Tauri", "Rust", "TypeScript"]
 # updates from it. Only the link was removed. UPCOMING-FEATURES.md "R20".
 proof: "Public update feed · source private"
 order: 2
-bodyReviewed: false
+bodyReviewed: true # read by Jan, 2026-09-17
 ---
 
 {/*
@@ -36,8 +36,12 @@ bodyReviewed: false
       latest.json; Windows installMode "passive"
     · public repo ancientsky14/mgb-ebudget-releases — latest v1.0.12
 
-  NEEDS (Jan):
-    · read it in your own voice, then set bodyReviewed: true
+  RESOLVED 2026-09-17:
+    · re-verified claim by claim against Z:\Dev\Projects\mgb-ebudget
+      (scripts/release.mjs, src-tauri/tauri.conf.json) — accurate
+    · "a government financial system's source" → "a financial system's
+      source": engineering-first, per content/positioning.md
+    · Jan read the draft and approved publishing
   ────────────────────────────────────────────────────────────────
 */}
 
@@ -78,8 +82,7 @@ publish anything unsigned**.
 The updater downloads with no credentials, and a private repository's release
 assets need an authenticated request it cannot make. So the installers and the
 update manifest live in a separate public repository that holds nothing but
-releases. The download stays open; a government financial system's source does
-not.
+releases. The download stays open; a financial system's source does not.
 
 ## The trap that only shows up later
 

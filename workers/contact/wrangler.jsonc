@@ -19,6 +19,20 @@
 			"migrations_dir": "migrations"
 		}
 	],
+	// Flood shield for POST /contact (R23): five requests a minute per visitor,
+	// keyed by the salted IP hash. Period must be 10 or 60. The namespace id is
+	// account-wide — the visits Worker uses 2002; never reuse one, or the two
+	// Workers share counters.
+	"ratelimits": [
+		{
+			"name": "SEND_LIMITER",
+			"namespace_id": "2001",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		}
+	],
 	"vars": {
 		// Who may send (POST /contact) — the live site only, as the visits
 		// Worker does. Local testing sets its own in .dev.vars.

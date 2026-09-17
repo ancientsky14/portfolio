@@ -5,12 +5,21 @@
  *
  *   POST /contact   a brief → stored in D1 → emailed to Jan through Gmail SMTP
  *
- * In order: the Origin must be the live site (403); the body must be a valid
- * brief (lib/brief.ts, 400); the Turnstile token must verify for one of those
- * origins' hostnames (400); the visitor may have sent at most three messages
- * in the past hour (429). Then the message is stored, and only then emailed —
- * if Gmail fails the answer is still 200, `{ stored: true, emailed: false }`,
- * because the message is safe in D1.
+ * In order: the Origin must be the live site (403); the visitor may make at
+ * most five requests a minute (SEND_LIMITER, 429) — checked before the body is
+ * read or Turnstile is called, so a flood costs almost nothing; the body must
+ * be a valid brief (lib/brief.ts, 400); the Turnstile token must verify for one
+ * of those origins' hostnames (400); the visitor may have sent at most three
+ * messages in the past hour (429); the whole form may have sent at most
+ * DAILY_CAP messages in the past day (503). Then the message is stored, and
+ * only then emailed — if Gmail fails the answer is 502,
+ * `{ stored: true, emailed: false }`, and the message stays safe in D1.
+ *
+ * Why a global cap (R23): the sender is Jan's personal Gmail. The per-visitor
+ * limits hold one IP back; they do nothing against many IPs, each solving
+ * Turnstile, which could send enough to get that account flagged. Past the
+ * cap the form gets 503 — not 429, which tells the visitor *they* sent too
+ * much — and hands them the brief for their own mail app instead.
  *
  * The email comes From Jan's Gmail (Gmail rewrites any other From), with
  * Reply-To set to the visitor, so answering it answers them.
@@ -41,6 +50,8 @@ export interface Env {
   TURNSTILE_SECRET: string;
   /** `npx wrangler secret put IP_SALT` — a long random string. */
   IP_SALT: string;
+  /** Workers Rate Limiting binding (wrangler.jsonc) — requests per minute. */
+  SEND_LIMITER: RateLimit;
 }
 
 const SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
@@ -54,6 +65,8 @@ const RATE_LIMIT = 3;
 const RATE_WINDOW_MS = 60 * 60 * 1000;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** Messages the whole form may send in 24 hours — far past real traffic. */
+const DAILY_CAP = 20;
 const KEEP_EMAILED_DAYS = 30;
 const KEEP_ANY_DAYS = 90;
 
@@ -72,6 +85,7 @@ function json(body: unknown, status: number, origin: string | null): Response {
   const headers: Record<string, string> = {
     "content-type": "application/json",
     "cache-control": "no-store",
+    "x-content-type-options": "nosniff",
   };
   if (origin) {
     headers["access-control-allow-origin"] = origin;
@@ -164,11 +178,21 @@ export default {
         "TURNSTILE_SECRET",
         "IP_SALT",
         "MAIL_TO",
+        "SEND_LIMITER",
       ] as const
     ).filter((name) => !env[name]);
     if (missing.length > 0) {
       console.error(`contact: not configured, missing ${missing.join(", ")}`);
       return json({ error: "not configured" }, 500, origin);
+    }
+
+    // Keyed by the salted hash, not the raw IP. The counter is per Cloudflare
+    // location and eventually consistent — a flood shield, not an exact count;
+    // the D1 checks below are the exact ones.
+    const ip = request.headers.get("CF-Connecting-IP") ?? "";
+    const ipHash = await sha256(`${env.IP_SALT}:${ip}`);
+    if (!(await env.SEND_LIMITER.limit({ key: ipHash })).success) {
+      return json({ error: "too many messages" }, 429, origin);
     }
 
     // Size first, from the header, so an oversized body is never read.
@@ -198,21 +222,29 @@ export default {
     }
     const brief = check.brief;
 
-    const ip = request.headers.get("CF-Connecting-IP") ?? "";
     const hostnames = origins.map((o) => new URL(o).hostname);
     if (!(await verifyTurnstile(token, ip, env.TURNSTILE_SECRET, hostnames))) {
       return json({ error: "verification failed" }, 400, origin);
     }
 
-    const ipHash = await sha256(`${env.IP_SALT}:${ip}`);
-    const since = new Date(Date.now() - RATE_WINDOW_MS).toISOString();
-    const recent = await env.CONTACT_DB.prepare(
-      "SELECT COUNT(*) AS n FROM messages WHERE ip_hash = ?1 AND created_at > ?2",
-    )
-      .bind(ipHash, since)
-      .first<{ n: number }>();
-    if ((recent?.n ?? 0) >= RATE_LIMIT) {
+    const now = Date.now();
+    const [recent, today] = (
+      await env.CONTACT_DB.batch<{ n: number }>([
+        env.CONTACT_DB.prepare(
+          "SELECT COUNT(*) AS n FROM messages WHERE ip_hash = ?1 AND created_at > ?2",
+        ).bind(ipHash, new Date(now - RATE_WINDOW_MS).toISOString()),
+        env.CONTACT_DB.prepare("SELECT COUNT(*) AS n FROM messages WHERE created_at > ?1").bind(
+          new Date(now - DAY_MS).toISOString(),
+        ),
+      ])
+    ).map((r) => r.results[0]?.n ?? 0);
+    if (recent >= RATE_LIMIT) {
       return json({ error: "too many messages" }, 429, origin);
+    }
+    if (today >= DAILY_CAP) {
+      // No personal data: a count and nothing else.
+      console.error(`contact: daily cap of ${DAILY_CAP} reached, refusing`);
+      return json({ error: "paused" }, 503, origin);
     }
 
     // Stored before the send, so a Gmail failure loses nothing.

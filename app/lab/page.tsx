@@ -97,7 +97,7 @@ export default async function Lab() {
         {/* ── featured ─────────────────────────────────────────── */}
         {featured ? (
           <div data-reveal className="frame mt-10 p-2 sm:p-3">
-            <div className="grid overflow-hidden rounded-lg border border-line bg-surface xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+            <div className="grid grid-cols-[minmax(0,1fr)] overflow-hidden rounded-lg border border-line bg-surface xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
               <div className="p-6 sm:p-8 xl:p-10">
                 <p className="font-mono text-2xs font-semibold uppercase tracking-widest text-accent">
                   {featured.kind} · {featured.year}
@@ -179,7 +179,7 @@ export default async function Lab() {
 
         {/* ── entries ──────────────────────────────────────────── */}
         {rest.length ? (
-          <ul data-reveal-group className="mt-6 grid gap-4 md:grid-cols-2">
+          <ul data-reveal-group className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
             {rest.map((e) => {
               const Icon = KIND_ICON[e.kind] ?? NotebookPen;
               return (

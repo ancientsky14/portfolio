@@ -6,7 +6,7 @@ kind: "Experiment"
 year: 2026
 blurb: >-
   Thirty thousand points that resolve out of a drifting field into a chain of
-  islands, in one draw call, without a React renderer — and a still poster for
+  islands, in one draw call, without a React renderer — and the plain page for
   every device that should not run it.
 stack: ["Three.js", "GSAP", "TypeScript"]
 # No `source` link, by Jan's choice (2026-09-17): he doesn't want the site's
@@ -25,7 +25,7 @@ facts:
     label: "reasons it stays off"
 featured: true
 order: 1
-bodyReviewed: false
+bodyReviewed: true # read by Jan, 2026-09-17 (the two new sections were added after his read)
 ---
 
 {/*
@@ -41,11 +41,20 @@ bodyReviewed: false
     · components/hero/archipelago.tsx — the mount guards
     · lib/archipelago.ts — procedural islands, seeded; deliberately not a
       map of the Philippines, and why
-    · lib/motion.ts — BG_EVENT scatter / gather / attract
+    · lib/motion.ts — BG_EVENT scatter / gather / attract / showcase
+    · (2026-09-17) the showcase: components/lab/bg-replay.tsx, SHOWCASE in
+      lib/motion.ts (0.4s out, 5s assemble, 4.6s hold, 3s return), the 8%
+      dim in design/tokens.css — UPCOMING-FEATURES.md R17
+    · (2026-09-17) touch on every page via touch events, not pointer events,
+      and the in-place fade — R18, R19
+    · corrected 2026-09-17: there is no still poster image — without the
+      canvas the page is the plain ground (plus the home hero's colour wash)
 
-  NEEDS (Jan):
-    · read it in your own voice and correct anything that does not sound
-      like you, then set bodyReviewed: true
+  RESOLVED 2026-09-17:
+    · Jan read the draft and approved publishing. "Watch it assemble" and
+      "A finger, not a cursor" were written AFTER his read, from that day's
+      verified work — their facts are confirmed, their voice is not yet
+      reviewed by him.
   ────────────────────────────────────────────────────────────────
 */}
 
@@ -53,9 +62,9 @@ bodyReviewed: false
 
 The background of this site is a point cloud. On load, thirty thousand points
 drift in from a loose field and settle into a chain of islands on the right of
-the window. At rest they breathe. They part around the pointer, lean toward the
-card or button under it, loosen when a page leaves and resolve again when the
-next one arrives.
+the window, centred on a phone. At rest they breathe. They part around a pointer
+or a finger, lean toward the card or button under the cursor, loosen when a page
+leaves and resolve again when the next one arrives.
 
 It is one geometry, one material and one draw call.
 
@@ -75,13 +84,13 @@ mixes between them against a single uniform, `uProgress`, and GSAP drives that
 one number. The seed delays each point slightly, so the islands form as a wave
 rather than snapping into place.
 
-Nothing moves on the CPU per point. The page talks to the canvas through three
-window events — `scatter`, `gather` and `attract` — so neither side imports
-the other, and the page works the same when the canvas is absent.
+Nothing moves on the CPU per point. The page talks to the canvas through four
+window events — `scatter`, `gather`, `attract` and `showcase` — so neither side
+imports the other, and the page works the same when the canvas is absent.
 
 ## When it does not run
 
-The canvas is the enhancement; the still poster in the HTML is the default.
+The canvas is the enhancement; the plain page underneath is the default.
 It does not mount when:
 
 - the visitor asked for reduced motion, in the OS or in the site's own
@@ -94,13 +103,36 @@ Where it does run, it asks for the low-power GPU, caps the pixel ratio at 1.5,
 and drops to twelve thousand points on narrow screens. The people this site is
 for often open it on a mid-range Android, on mobile data, outside Metro Manila.
 
+## Watch it assemble
+
+Behind every page the field sits faint, under the cards, so its resolve is easy
+to miss. The button on this note steps the page aside: everything else fades to
+8% and stops taking input, the field comes up to near-full strength, and it
+resolves from nothing over five seconds, holds, then hands the page back over
+three.
+
+The timing is only felt because it eases in and out. On the site's usual
+expo-out curve, a five-second resolve does most of its moving in the first
+second and then crawls — it reads as a snap and a stall, not as five seconds.
+
+## A finger, not a cursor
+
+On a phone there is no pointer to part the islands, so a finger does it, on
+every page. That meant listening to touch events rather than pointer events.
+The moment a drag turns into a scroll, the browser takes the gesture and
+cancels the pointer stream — the effect would die a few pixels into almost
+every touch. Touch events keep arriving through the scroll.
+
+The parting fades in where the finger lands and out where it lifts. Eased from
+where the cursor last was, it would have flown in from off-screen.
+
 ## What it is not
 
 It is not a map of the Philippines. The islands are procedural — a seeded
 north–south chain with a few outliers — so it reads as an archipelago without
-claiming to be a coastline. An inaccurate outline of a real country, on the
-site of a developer who sells accuracy to that country's institutions, is a bad
-trade for a background effect.
+claiming to be a coastline. An inaccurate outline of a real country, on a site
+whose whole claim is getting the details right, is a bad trade for a background
+effect.
 
 The upgrade path, if it is ever worth the day: sample points inside a
 public-domain outline at build time, keeping the same data shape.

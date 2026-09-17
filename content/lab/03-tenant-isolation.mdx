@@ -11,7 +11,7 @@ blurb: >-
 stack: ["PocketBase", "React", "Docker"]
 proof: "20 assertions · npm run test:tenancy"
 order: 3
-bodyReviewed: false
+bodyReviewed: true # read by Jan, 2026-09-17 — published without the rule code line
 ---
 
 {/*
@@ -23,7 +23,8 @@ bodyReviewed: false
       collections with role-only rules; Phase 1 gate: npm run
       test:tenancy, 20 assertions passing
     · three migrations, additive → backfill → tighten, and why
-    · the rule-wrapping line, quoted verbatim
+    · the rule-wrapping approach (the verbatim line was cut from the
+      published body, 2026-09-17 — see RESOLVED)
     · mirrored collections read-only in the cloud; composite uniqueness
     · finance_audit_logs createRule forgery hole, fixed in the same pass
     · one-writer topology; remote barangay staff read-only
@@ -32,10 +33,14 @@ bodyReviewed: false
     · SENTRO is MIT, built on BarangayOS by Rodney Dela Cruz (verified
       2026-09-10 against sentro/LICENSE)
 
-  NEEDS (Jan):
-    · the sentro repo is private — confirm that publishing this level of
-      schema detail is fine (you approved the entry on 2026-09-11)
-    · read it in your own voice, then set bodyReviewed: true
+  RESOLVED 2026-09-17 (Jan):
+    · the sentro repo is private, so the body is published WITHOUT the
+      verbatim access-rule code line — the method is described, the exact
+      rule syntax is not
+    · "a government client would never forgive" → engineering-first
+    · Jan read the draft and approved publishing. NOT re-verified that day:
+      the sentro repo is not on the office PC, so these facts stand on the
+      2026-09-11 read and Jan's review.
   ────────────────────────────────────────────────────────────────
 */}
 
@@ -64,11 +69,9 @@ in the only order that is safe:
    rewrite the access rules.
 
 The rules **wrap** each collection's existing role check rather than replacing
-it, so everything that was admin-only stays admin-only:
-
-```javascript
-collection[rule] = `((${base}) && barangay = @request.auth.barangay) || ${CITY_ROLE}`
-```
+it: the old check still has to pass, and on top of it a record must belong to
+the signed-in user's barangay, with the city role allowed through. So
+everything that was admin-only stays admin-only.
 
 Uniqueness that would have broken on the second barangay became composite —
 two barangays can both have household number 001, but one barangay still
@@ -97,9 +100,9 @@ cleanly even when a migration fails.
 ## What it found on the way
 
 One collection's create rule allowed any signed-in user — including a
-read-only viewer — to write audit-log rows under any name. Forged audit
-entries in a records system are exactly the failure a government client would
-never forgive. It was closed in the same pass.
+read-only viewer — to write audit-log rows under any name. A forged audit
+entry is exactly the failure an audit log exists to prevent. It was closed in
+the same pass.
 
 ## One writer per record
 

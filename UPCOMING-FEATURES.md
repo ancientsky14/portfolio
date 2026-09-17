@@ -1456,6 +1456,270 @@ The `/lab/[slug]` sidebar chips already fit at every width and were left alone.
 
 ---
 
+## R21 — The three lab notes, published (2026-09-17)
+
+Until today every note on `/lab` rendered only its summary in production,
+plus "The full note is being reviewed before it goes up": each had
+`bodyReviewed: false`, a flag CLAUDE.md forbids setting on Jan's behalf. Jan
+asked to finish them and **confirmed he had read the drafts**. Before asking
+for his decisions, each note was checked against its source.
+
+### What was checked, and against what
+
+- **Archipelago** — against `archipelago-canvas.tsx`, `archipelago.tsx`,
+  `lib/archipelago.ts` and `lib/motion.ts`. **Two claims had gone stale during
+  that same day's work:** "three window events" (R17 added `showcase`, so four)
+  and "a still poster" (no image exists; without the canvas the page is the
+  plain ground, plus the home hero's colour wash). Both fixed, in the blurb
+  and the body. "On the right of the window" gained "centred on a phone", and
+  "part around the pointer" gained "or a finger" (R19).
+- **Signed releases** — re-verified claim by claim against
+  `Z:\Dev\Projects\mgb-ebudget`: `scripts/release.mjs` (the two silent failures
+  named in its header; key contents checked before the build because the
+  `_PATH` variant is ignored; both version files; no publish without a
+  `.sig`; the dot-free asset name with `latest.json` written in the same
+  place; `--tag` refusing a dirty tree and committing only after a signed
+  build) and `src-tauri/tauri.conf.json` (updater endpoint on the public
+  releases repo). Accurate as drafted.
+- **Tenant isolation** — **not re-verifiable**: the SENTRO repo isn't on the
+  office PC. Published on the 2026-09-11 read and Jan's review.
+
+### Jan's calls
+
+- **Archipelago gained two short sections**, "Watch it assemble" (R17) and
+  "A finger, not a cursor" (R18/R19): why the in-out easing is what makes five
+  seconds feel like five, and why touch listens to touch events. **They were
+  written after his read** — facts from that day's verified work, voice not
+  yet reviewed by him. The note's ledger says so.
+- **Tenant isolation is published without the verbatim access-rule code line.**
+  The SENTRO repo is private, so the method is described in prose (the old
+  role check must still pass, the record must belong to the signed-in
+  barangay, the city role is let through) without the exact rule syntax.
+- **Three buyer-framed sentences were reworded engineering-first**, per the
+  positioning rule: "a developer who sells accuracy to that country's
+  institutions" → "a site whose whole claim is getting the details right";
+  "a government financial system's source" → "a financial system's source";
+  "the failure a government client would never forgive" → "the failure an
+  audit log exists to prevent".
+
+### Verified
+
+In the production build (`out/`): all three bodies render with every heading
+present; neither "Draft — visible in dev only" nor "being reviewed before it
+goes up" appears; none of the removed phrases or the rule syntax
+(`request.auth.barangay`, `CITY_ROLE`) remain; none of the ledger text
+(`CONFIRMED`, `NEEDS`, `RESOLVED`) leaked into the page.
+
+These bodies had **never rendered in a production build before**, so each got
+a full layout sweep at 360, 390, 412, 768, 1024 and 1280 on `/lab/` and all
+three notes: no horizontal scroll, no grid track wider than its box (the R15
+check), and the signed-releases code block fits even at 360 — 24 of 24.
+Phone screenshots read cleanly.
+
+**Owed by Jan:** read the two new Archipelago sections on the live page, and
+the tenant-isolation note again once the SENTRO repo is to hand.
+
+---
+
+## R22–R23 — lab demos, built then reverted (2026-09-17)
+
+**R22.** Jan asked for a lab that informs visitors and lets them try what he
+built. Built and verified the same day: four in-browser miniatures
+(release checker, budget guards, claim tracker, barangay break-in), each a
+port of real rules and messages running on fictional data and loaded only on
+"Start the demo"; two demo-only lab entries; a plain-language "In short" per
+note; and lab ↔ case-study cross-links. **Jan then had all of it reverted**,
+including In short and the cross-links. Don't rebuild any of it without
+asking him.
+
+**R23.** Jan clarified he wanted the *actual* apps, not miniatures. He dropped
+that too, after the first finding. Nothing was built, and no other repo was
+changed. If it ever comes back, start here:
+
+- **LMIS's "demo mode" can't be published.** `ALLOW_DEMO_AUTH` is refused
+  whenever `NODE_ENV=production` (`santol-municipal-portal`,
+  `lib/security/environment.ts`). That refusal is a deliberate security fix:
+  the fallback once made the admin panel open. It also shows no data. A real
+  LMIS demo needs its own database, and admin roles require MFA.
+- **eTracker** would need its own Supabase project, a fictional seed, email
+  and AI calls disabled, and a daily reset. Supabase's free plan allows
+  2 active projects per organization.
+- **eBudget** is the cheap one. Every frontend call goes through one `invoke`
+  (`mgb-ebudget/src/lib/transport.ts`, Vite-aliased), so a static browser
+  build could answer from a recorded snapshot, with no server.
+- **SENTRO** needs a PocketBase host, and its repo wasn't on the office PC.
+
+**Kept from R22:** base `grid-cols-[minmax(0,1fr)]` on four grids that lacked
+one: the `/lab` featured card and entries list, and the body grid on
+`/lab/[slug]` and `/work/[slug]`. That's the CLAUDE.md grid rule, not a
+feature.
+
+---
+
+## R24 — Security hardening (2026-09-17)
+
+Jan asked to make the site more secure. His two calls: **stay on GitHub Pages**
+(so a meta CSP, not real headers) and **keep his personal Gmail as the
+sender** (so the Worker has to cap what it can send).
+
+### Audited and already sound, left alone
+
+Contact Worker: Origin allow-list, Turnstile with a hostname check, 32KB body
+cap, `validateBrief()` keeping CR/LF out of headers, salted IP hash, 3 per
+hour, retention cron, no secret values in logs. JSON-LD escapes `<`. Every
+`target="_blank"` has `noopener`. **No secrets in tracked files or in git
+history**: the `.dev.vars`/`.env` paths were never committed, and grepping
+history for the secret names finds only setup instructions and a local dev
+salt. The Turnstile site key is public by design.
+
+### What changed
+
+- **CI least privilege** (`deploy.yml`): workflow `permissions: {}`. The
+  build job, which runs every dependency's install scripts through `npm ci`,
+  gets `contents: read` only. Before this, a compromised package could have
+  published to Pages. `persist-credentials: false` on checkout. All four
+  actions are pinned to commit SHAs within the majors already in use
+  (checkout/setup-node v4.4.0, upload-pages-artifact v3.0.1, deploy-pages
+  v4.0.5), with no behaviour change. `npm audit --omit=dev
+  --audit-level=critical` blocks the build (0 findings today).
+- **Dependabot** (`.github/dependabot.yml`): weekly, minor+patch grouped, for
+  `/`, both Workers and the actions.
+- **Contact Worker**: a `SEND_LIMITER` rate-limit binding (5/min, keyed by the
+  salted IP hash) runs before the body is read or Turnstile is called.
+  **`DAILY_CAP` = 20 messages / 24h across the whole form** answers **503**,
+  not 429: the form maps 429 to "you've hit the limit, try in an hour", which
+  would blame a visitor who did nothing, while any other failure hands them
+  the brief for their own mail app. `nosniff` on every response.
+- **Visits Worker**: `HIT_LIMITER` (30/min per salted IP hash) on `/hit` and
+  `/view`, and `nosniff`. The rail already falls back to `GET /count` on any
+  non-2xx.
+- **CSP** (`lib/csp.ts`, meta in `app/layout.tsx`, production only) and
+  `referrer: strict-origin-when-cross-origin` through Next metadata. What the
+  CSP does and doesn't buy is in the file's header.
+
+### Accepted, so nobody re-audits it
+
+- No clickjacking protection (meta CSP ignores `frame-ancestors`).
+- Next hoists its preloads and 7 async same-origin chunk tags above the meta,
+  so those *loads* happen before the policy exists. Everything they do after
+  is checked.
+- The visit total can still be pushed up by rotating the user agent, at up to
+  30 a minute per IP. It's a display number.
+- `ALLOWED_ORIGINS` is `ancientsky14.github.io`, which every Pages site on
+  that account shares. Turnstile still gates every send.
+
+### Verified
+
+- `npm run typecheck`, `npm run build`, `tsc --noEmit` in both Workers.
+- CSP meta on 16/16 built pages. Headless Edge against `out/`, listening for
+  `securitypolicyviolation`: **zero violations** on `/`, `/services/`,
+  `/about/`, `/writing/`, a case study, a lab note, `/work/` with the viewer
+  open, `/lab/`, `/lab/archipelago/` (canvas mounted, "Watch it assemble"
+  played), the Ctrl+K palette, and `/contact/` (the Turnstile iframe loaded).
+  **Control:** a `fetch` to example.com was blocked and reported, so the check
+  does catch violations. The only outside origins requested were the visits
+  Worker and Turnstile.
+- `wrangler dev`, local D1: contact → requests 1–5 got 400, 6–7 got 429; a
+  wrong Origin got 403. With 20 recent rows seeded, a valid brief using the test
+  Turnstile token got **503 `paused`**, the row count was unchanged, and nothing
+  was emailed (the seed rows were deleted after). Visits → 33 `POST /hit`
+  gave 30× 200 and 3× 429. `nosniff` was present throughout.
+- **Not verified:** the live site and deployed Workers. The Workers change
+  only after `npx wrangler deploy` in each folder. The site changes on the
+  next push.
+
+### Owed by Jan (account settings, can't be done from code)
+
+1. `cd workers/contact && npx wrangler deploy`, then the same in
+   `workers/visits`. Send one real message through the live form afterwards.
+2. GitHub: 2FA on. Repo → Settings → Code security: secret scanning, push
+   protection and Dependabot alerts on. Settings → Environments →
+   `github-pages` → deployment branches: `portfolio` only.
+3. Cloudflare: 2FA on. Any API tokens scoped to these two Workers.
+4. Google: the App Password used only by this Worker. If it has ever been
+   pasted anywhere else, revoke it and run `npx wrangler secret put
+   GMAIL_APP_PASSWORD` again.
+
+---
+
+## R25 — Security follow-up: the two accepted risks, and the accounts (2026-09-17)
+
+Jan asked to fix what R24 had left: clickjacking, the visit count, and the
+account settings.
+
+### Clickjacking — a frame guard
+
+With no headers available, the page protects itself. `FRAME_GUARD`, an inline
+script placed after the CSP meta (production only), adds `html.is-framed`
+when `window.top !== window.self`. `design/tokens.css` then hides every direct
+child of `<body>` except `.framed-notice`, which says the page is inside
+another website and links to `SITE.url` with `target="_top"`. The framing
+site can't remove a class from a cross-origin document. Not a `top.location`
+redirect: browsers block a frame from navigating the top page without a click.
+
+- **Bypass:** `sandbox` without `allow-scripts`. The guard doesn't run, but
+  neither does Turnstile, so the brief form can't send. Links and text in a
+  frame are not worth a clickjacking attack.
+- **Cost:** any legitimate framing (responsive-preview sites, embeds) sees the
+  notice. Localhost is exempt, so a local preview in an editor pane works.
+
+### The visit count — a per-IP daily cap
+
+Migration `0004_ip_day_cap.sql` adds `ip` to `visits` and `page_hits`:
+SHA-256(salt, Manila day, IP), deleted with the rows after two days, and never
+the address itself. Each insert is an `INSERT … SELECT … WHERE (count for this
+IP today) < IP_DAY_CAP`, so the check and the write are one statement and two
+requests at once can't both slip under it. Cap: 20 distinct visitors per IP
+per day, and for `/view` per IP per path per day. It's generous because
+colleagues on the same browser build already count as one visitor. Rows from
+before the migration carry `ip` NULL and count against nobody.
+
+### Accounts
+
+- **Done here, via `gh api`:** secret scanning and push protection on
+  `ancientsky14/portfolio`; 0 open alerts right after enabling (the history
+  scan runs in the background, so check Security → Secret scanning later).
+- **Already in place, nothing changed:** Dependabot alerts and security
+  updates; the `github-pages` environment limited to the `portfolio` branch.
+  No Actions secrets exist, so no Cloudflare credential sits in GitHub.
+- **Not checkable from here:** GitHub 2FA (`two_factor_authentication` reads
+  `null` without the `user` token scope). GitHub has required 2FA of code
+  contributors since 2023, but confirm under Settings → Password and
+  authentication.
+- **Cloudflare, Jan's to do.** Wrangler on the office PC is logged in with an
+  **OAuth token for the whole account** (connectivity admin, SSL certs, email
+  sending, containers and more), stored in `%APPDATA%\xdg.config\.wrangler`.
+  That token, not an API token, is the exposure. Cloudflare tokens can't be
+  scoped to single Workers, only to an account and permission set. So:
+  1. Dashboard → turn on 2FA.
+  2. My Profile → API Tokens → Create → "Edit Cloudflare Workers" template,
+     add **D1: Edit**, Account Resources: this account only, Zone Resources:
+     none needed (both Workers are on workers.dev), and a TTL.
+  3. Finish the pending deploys first (below). Then run `npx wrangler logout`
+     and, for later deploys, set `$env:CLOUDFLARE_API_TOKEN` in that terminal
+     only. Never save it in the repo or a profile script.
+
+### Verified
+
+- Typecheck, build and `tsc --noEmit` in the visits Worker all pass.
+- Frame guard, headless Edge with `site.test`/`evil.test` mapped to 127.0.0.1:
+  - Direct visit: page normal, notice hidden.
+  - Framed cross-origin: `is-framed`, content `display: none`, notice shown.
+  - Framed with `sandbox="allow-scripts"`: same.
+  - Framed on localhost: exempt.
+  - 0 CSP errors. Screenshot checked: the notice is centred on `--ground`.
+  - The R24 all-pages CSP check re-ran clean.
+- Visits cap, `wrangler dev` with local D1:
+  - 25 `POST /hit` from one IP with a new user agent each time: all 200, total
+    +20 exactly.
+  - 25 `/view` on `/work/`: 20 counted, 5 not.
+  - Same IP on `/about/`: counted.
+- **Not verified live.** Order matters for the visits Worker:
+  `npx wrangler d1 migrations apply portfolio-visits --remote`, **then**
+  `npx wrangler deploy`. The new code writes the `ip` column, so deploying
+  first breaks counting until the migration runs.
+
+---
 ## Budgets to re-check after each phase
 
 From CLAUDE.md: LCP < 2.0 s on 4G mid-range Android · CLS < 0.05 · INP < 200 ms

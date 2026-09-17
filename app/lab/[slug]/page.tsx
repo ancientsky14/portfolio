@@ -104,7 +104,7 @@ export default async function LabNote({
         ) : null}
       </header>
 
-      <div className="grid gap-12 px-5 py-14 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,19rem)] lg:gap-16 lg:px-12">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-12 px-5 py-14 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,19rem)] lg:gap-16 lg:px-12">
         <div className="min-w-0 max-w-prose">
           {visibility === "draft" ? (
             <div className="mb-10 rounded-md border border-warn bg-surface p-5">
