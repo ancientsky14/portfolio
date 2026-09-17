@@ -61,27 +61,6 @@ export const metadata: Metadata = {
 };
 
 /**
- * Frame guard (R25) — clickjacking protection without headers. GitHub Pages
- * cannot send X-Frame-Options or `frame-ancestors`, and a meta CSP ignores
- * the latter, so the page protects itself: framed by anything, it marks
- * `html.is-framed` before paint, and design/tokens.css hides everything but
- * the notice. The framing site cannot remove a class from a cross-origin
- * document.
- *
- * The bypass is a sandboxed frame with scripts disabled. Then this does not
- * run, but neither does anything worth tricking a click into: the brief form
- * sends only through Turnstile, which needs scripts. Localhost is exempt so
- * a local preview inside an editor's browser pane still works.
- */
-const FRAME_GUARD = `
-try{
-  if(window.top!==window.self && !/^(localhost|127\\.0\\.0\\.1)$/.test(location.hostname)){
-    document.documentElement.classList.add('is-framed');
-  }
-}catch(e){ document.documentElement.classList.add('is-framed'); }
-`;
-
-/**
  * Theme boot. Runs before first paint so a returning dark-theme visitor
  * never sees a flash of the light ground.
  *
@@ -123,10 +102,7 @@ export default function RootLayout({
         {/* First in <head>: a meta CSP covers only what is parsed after it.
             Production only — see lib/csp.ts. */}
         {process.env.NODE_ENV === "production" ? (
-          <>
-            <meta httpEquiv="Content-Security-Policy" content={contentSecurityPolicy()} />
-            <script dangerouslySetInnerHTML={{ __html: FRAME_GUARD }} />
-          </>
+          <meta httpEquiv="Content-Security-Policy" content={contentSecurityPolicy()} />
         ) : null}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <JsonLd data={personLd(avatar)} />
@@ -134,16 +110,6 @@ export default function RootLayout({
       <body
         className={`${display.variable} ${sans.variable} ${mono.variable} min-h-dvh bg-ground text-text antialiased`}
       >
-        {/* Shown only inside another site's frame (FRAME_GUARD above). */}
-        <div className="framed-notice p-6 text-center">
-          <p className="max-w-sm text-base text-text-2">
-            This page is being shown inside another website.{" "}
-            <a href={SITE.url} target="_top" className="font-medium text-accent underline">
-              Open {SITE.name}&rsquo;s site directly
-            </a>
-            .
-          </p>
-        </div>
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-sm focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-ink"

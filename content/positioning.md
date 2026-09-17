@@ -89,8 +89,9 @@ the Built for strip says "Client".
 
 Personal name, not a studio: `Jan Luigi Rivera`, handle `@ancientsky14`.
 Contact address `janluigirivera@gmail.com`, confirmed 2026-09-11.
-The site deploys to `https://ancientsky14.github.io/portfolio/` until a domain
-is picked (`janluigi.dev`, `jlrivera.dev` were the candidates).
+The site deploys to `https://portfolio.ancientsky14.workers.dev/` (Cloudflare,
+since 2026-09-17; the old GitHub Pages address redirects) until a domain is
+picked (`janluigi.dev`, `jlrivera.dev` were the candidates).
 
 ---
 

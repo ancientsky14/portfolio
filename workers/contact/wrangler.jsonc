@@ -36,10 +36,10 @@
 	"vars": {
 		// Who may send (POST /contact) — the live site only, as the visits
 		// Worker does. Local testing sets its own in .dev.vars.
-		// Both hosts while the site moves to Cloudflare (R27); github.io goes
-		// once it only redirects. Each hostname must also be on the Turnstile
-		// widget, or verification fails.
-		"ALLOWED_ORIGINS": "https://portfolio.ancientsky14.workers.dev,https://ancientsky14.github.io",
+		// The Cloudflare-hosted site only (R27). github.io serves a redirect now,
+		// and its origin is shared by every Pages site on the account. A hostname
+		// here must also be on the Turnstile widget, or verification fails.
+		"ALLOWED_ORIGINS": "https://portfolio.ancientsky14.workers.dev",
 		// Where briefs go. The address is already public on the site.
 		"MAIL_TO": "janluigirivera@gmail.com"
 	},

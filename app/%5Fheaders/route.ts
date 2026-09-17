@@ -16,7 +16,9 @@ import { contentSecurityPolicy } from "@/lib/csp";
  *     iframe, and the contact form stops working.
  *   · Share cards (/og/*) are cross-origin on purpose. `!` removes the
  *     site-wide value first; without it Cloudflare joins both with a comma.
- *   · HSTS comes from workers.dev itself, which is on the preload list.
+ *   · HSTS is sent explicitly. workers.dev is on the browsers' preload list,
+ *     but it sends no header of its own (checked live on the first deploy),
+ *     and scanners only read the header.
  */
 
 export const dynamic = "force-static";
@@ -35,6 +37,7 @@ export function GET() {
     [
       "/*",
       [
+        "Strict-Transport-Security: max-age=31536000; includeSubDomains",
         `Content-Security-Policy: ${contentSecurityPolicy({ header: true })}`,
         "X-Frame-Options: DENY",
         "X-Content-Type-Options: nosniff",

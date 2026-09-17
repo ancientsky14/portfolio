@@ -1,8 +1,9 @@
 import { SITE } from "./site";
 
 /**
- * The Content-Security-Policy, delivered as a <meta> in app/layout.tsx (R23).
- * GitHub Pages sends no custom headers, so a meta tag is the only way.
+ * The Content-Security-Policy. Served as a header through `_headers` on
+ * Cloudflare (R27), and also as a <meta> in app/layout.tsx (R24), which still
+ * protects a copy of the build served without headers.
  *
  * What it buys: a script that should not be here — a compromised dependency,
  * say — cannot send data anywhere but the two Workers and Turnstile
@@ -15,10 +16,8 @@ import { SITE } from "./site";
  *     THEME_BOOT; hashing them all per build is not maintainable. So this
  *     policy does not stop injected inline script. The site renders no
  *     visitor-supplied content, which is what keeps that surface small.
- *   · A meta CSP ignores `frame-ancestors`, `report-uri` and `sandbox`, so
- *     there is no clickjacking protection. Accepted: the one action on the
- *     site, the brief form, sits behind Turnstile.
- *
+ *   · A meta CSP ignores `frame-ancestors`. Clickjacking protection is the
+ *     header copy's `frame-ancestors 'none'` plus X-Frame-Options.
  *   · Next hoists its preloads, stylesheet and async chunk <script> tags above
  *     anything the layout puts in <head>, so those few same-origin loads
  *     happen before the policy exists. Everything after — including every

@@ -1,5 +1,5 @@
-# Builds the static export and publishes it — to Cloudflare, and (until the
-# move is finished) to GitHub Pages.
+# Builds the static export and publishes it to Cloudflare. GitHub Pages now
+# serves only a redirect to it.
 #
 # Cloudflare (R27): https://portfolio.ancientsky14.workers.dev, an assets-only
 # Worker (wrangler.jsonc at the repo root) that serves real security headers
@@ -8,10 +8,9 @@
 # CLOUDFLARE_API_TOKEN — a token with Account → Workers Scripts: Edit and
 # nothing else.
 #
-# GitHub Pages: https://ancientsky14.github.io/portfolio/, built with
-# NEXT_PUBLIC_BASE_PATH=/portfolio — the path follows the repo name, case and
-# all. Kept serving the full site while the Cloudflare copy is verified; it
-# becomes a redirect afterwards (R27, commit B).
+# GitHub Pages: https://ancientsky14.github.io/portfolio/ serves redirect/
+# (index.html, copied to 404.html), which sends every old link to the same
+# path on workers.dev (R27). The path follows the repo name, case and all.
 
 name: Deploy
 
@@ -61,12 +60,6 @@ jobs:
 
       - run: npm run typecheck
 
-      - name: Build for GitHub Pages
-        run: npm run build && mv out out-pages
-        env:
-          NEXT_PUBLIC_BASE_PATH: /portfolio
-          NEXT_PUBLIC_SITE_URL: https://ancientsky14.github.io/portfolio
-
       - name: Build for Cloudflare
         run: npm run build
         env:
@@ -78,9 +71,12 @@ jobs:
       - name: Check the headers file
         run: grep -q "Content-Security-Policy" out/_headers
 
+      - name: Prepare the GitHub Pages redirect
+        run: mkdir pages-redirect && cp redirect/index.html pages-redirect/index.html && cp redirect/index.html pages-redirect/404.html
+
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
-          path: out-pages
+          path: pages-redirect
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

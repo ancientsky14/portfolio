@@ -1846,13 +1846,40 @@ Cloudflare on workers.dev, with no custom domain.
 3. Deploy both Workers so they accept the new origin (`npx wrangler deploy` in
    `workers/contact` and `workers/visits`).
 
-### Commit B — after the live check
+### Commit A live (`322094a`)
 
-The Pages deploy becomes a redirect (`index.html` and `404.html` mapping
-`/portfolio/…` and `/Portfolio/…` to the same path on workers.dev). github.io
-comes off both Workers' origin lists and the Turnstile widget. The frame guard
-goes (the headers make a framed page refuse to render). README and
-`content/positioning.md` links move to the new URL.
+Jan did all three prerequisites. Both Workers answered the new origin (the
+contact preflight gave 204 and `/count` gave 200, each with that
+`allow-origin`). All three deploy jobs succeeded. Live on workers.dev:
+
+- The CSP, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy,
+  COOP and CORP headers are present. `/og/site.png` returns `image/png` with
+  CORP cross-origin. `/work` gives 307, and `/nope/` gives 404.
+- **HSTS was missing.** workers.dev is preloaded in browsers but sends no
+  header, so commit B sends it explicitly.
+- The browser check on the live URL: zero violations on all 11 pages and
+  interactions, and the control fetch was blocked.
+- A real send through the live form returned 200 `{stored: true, emailed: true}`.
+  That was also the first real-key test of R26's hidden Turnstile.
+
+### Commit B — Pages becomes a redirect
+
+- `redirect/index.html`, published by the workflow as `index.html` and
+  `404.html`, script-redirects `/portfolio/…` to the same path, query and
+  hash on workers.dev. A `<noscript>` refresh goes to the home page instead.
+  It carries `noindex` and a canonical link. **The capital-P URL can't be
+  caught**: Pages treats `/Portfolio/` as a different site and GitHub's 404
+  answers first.
+- The workflow builds once (Cloudflare only).
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains` added to
+  `_headers`.
+- The frame guard is removed (layout, tokens.css). Headers now stop framing.
+- github.io is off both Workers' origin lists. **This only takes effect after
+  Jan redeploys them.** Remove `ancientsky14.github.io` from the Turnstile
+  widget too.
+- README and `content/positioning.md` point to the new URL.
+- **Owed by Jan:** update LinkedIn, the GitHub profile and the CV export to
+  the new URL.
 
 ---
 ## Budgets to re-check after each phase

@@ -1,0 +1,38 @@
+<!doctype html>
+<!--
+  The old GitHub Pages address, after the site moved to Cloudflare (R27).
+  deploy.yml publishes it to https://ancientsky14.github.io/portfolio/ and
+  copies it to 404.html. Pages serves 404.html for every missing path under
+  /portfolio/, so any old link lands on the same page at the new address.
+  Pages can't send a real 301, so this is a script redirect with a no-JS
+  fallback to the new home page.
+
+  It can't catch /Portfolio/ (capital P): Pages treats that as another site
+  that doesn't exist, so GitHub's own 404 answers before this file loads.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Moved · Jan Luigi Rivera</title>
+    <link rel="canonical" href="https://portfolio.ancientsky14.workers.dev/" />
+    <script>
+      (function () {
+        var path = location.pathname.replace(/^\/portfolio(?=\/|$)/i, "") || "/";
+        location.replace(
+          "https://portfolio.ancientsky14.workers.dev" + path + location.search + location.hash
+        );
+      })();
+    </script>
+    <noscript>
+      <meta http-equiv="refresh" content="0; url=https://portfolio.ancientsky14.workers.dev/" />
+    </noscript>
+  </head>
+  <body>
+    <p>
+      This site has moved to
+      <a href="https://portfolio.ancientsky14.workers.dev/">portfolio.ancientsky14.workers.dev</a>.
+    </p>
+  </body>
+</html>

@@ -542,25 +542,6 @@ html.a11y-reduce-motion .scroll-progress {
   animation: gallery-stage 0.42s var(--ease-spring) both;
 }
 
-/* ── Frame guard (R25, FRAME_GUARD in app/layout.tsx) ──────────────
-   Clickjacking: framed by another site, the boot script sets
-   `html.is-framed` and nothing but the notice renders — no content to
-   overlay, no button to trick a click onto. Unlayered, so it outranks any
-   display utility. */
-.framed-notice {
-  display: none;
-}
-html.is-framed body > :not(.framed-notice) {
-  display: none !important;
-}
-html.is-framed .framed-notice {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: grid;
-  place-items: center;
-  background: var(--ground);
-}
 
 /* ── Boot intro (components/motion/boot-intro.tsx) ─────────────────
    `html.is-intro` is set before paint by the boot script in

@@ -29,11 +29,10 @@
 	],
 	"vars": {
 		// Who may read the count (GET /count).
-		// Both hosts while the site moves to Cloudflare (R27); github.io goes
-		// once it only redirects.
-		"READ_ORIGINS": "https://portfolio.ancientsky14.workers.dev,https://ancientsky14.github.io,http://localhost:3000",
+		// The Cloudflare-hosted site (R27); github.io only redirects now.
+		"READ_ORIGINS": "https://portfolio.ancientsky14.workers.dev,http://localhost:3000",
 		// Who may add a visit (POST /hit) — the live site only.
-		"HIT_ORIGINS": "https://portfolio.ancientsky14.workers.dev,https://ancientsky14.github.io"
+		"HIT_ORIGINS": "https://portfolio.ancientsky14.workers.dev"
 	},
 	// 02:00 Asia/Manila: drop visitor keys older than two days. Only the total
 	// is kept long-term.

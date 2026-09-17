@@ -110,7 +110,7 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
 | R21 | The three lab notes published — stale facts fixed, engineering-first wording | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R21" |
 | R22 | Lab "Try it" demos + "In short" — built, then **reverted by Jan** the same day | **reverted** 2026-09-17, `UPCOMING-FEATURES.md` "R22–R23" — don't rebuild without asking |
 | R24 | Security — CI least privilege + SHA pins + Dependabot, meta CSP, Worker rate limits and a daily send cap | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R24" — Workers need `wrangler deploy`; account checklist is Jan's |
-| R27 | Hosting → Cloudflare static assets for real security headers (`_headers` from `lib/csp.ts`) | **in progress** 2026-09-17, `UPCOMING-FEATURES.md` "R27" — commit A (both hosts) built and verified locally; commit B (Pages → redirect) after live check |
+| R27 | Hosting → Cloudflare static assets for real security headers (`_headers` from `lib/csp.ts`) | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R27" — live on workers.dev; github.io redirects. Workers need a redeploy to drop the github.io origin |
 | R25 | Security follow-up — frame guard, per-IP daily visit cap, secret scanning + push protection | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R25" — visits needs remote migration 0004 then deploy; Cloudflare 2FA + scoped token are Jan's |
 | R9 | Hardening — budgets, keyboard + contrast pass (OG image done in `UPCOMING-FEATURES.md` Phase 1) | **partial** 2026-09-14: a11y 100, JS/CLS met; LCP 2.2–2.6s, Performance 70–79, real Android unmeasured. R9b profiled it: the floor is Next/React hydration, not site code — `UPCOMING-FEATURES.md` "R9", "R9b" |
 
@@ -306,16 +306,17 @@ rejected: iOS requires a motion-permission prompt.
 
 ## Deployment — Cloudflare static assets (static export)
 
-**Moving from GitHub Pages to Cloudflare (R27, 2026-09-17)**, so the site
+**Moved from GitHub Pages to Cloudflare (R27, 2026-09-17)**, so the site
 can send real security headers; Pages can't. The live site is
 **https://portfolio.ancientsky14.workers.dev**: an assets-only Worker
 (root `wrangler.jsonc`, **no `main`**, so asset requests stay free and
-nothing bypasses `_headers`), built with no base path. Until the move is
-verified, `.github/workflows/deploy.yml` builds twice and also publishes the
-full site to `https://ancientsky14.github.io/portfolio/` (`basePath`
-`/portfolio`). After that, Pages serves only a redirect. The Pages path is
-case-sensitive: `/Portfolio/` has 404'd since the 2026-09-14 rename, and a
-header scanner pointed at it grades GitHub's 404 page.
+nothing bypasses `_headers`), built with no base path. GitHub Pages
+(`https://ancientsky14.github.io/portfolio/`) now serves only `redirect/`,
+published as `index.html` and `404.html`, which sends any `/portfolio/…`
+link to the same path on workers.dev. It can't catch `/Portfolio/` (capital
+P), which has 404'd at GitHub since the 2026-09-14 rename. A header scanner
+pointed there grades GitHub's 404 page, not this site. `NEXT_PUBLIC_BASE_PATH`
+support stays in the code but is unused.
 
 - **Headers live in `out/_headers`**, written by `app/%5Fheaders/route.ts`
   (`%5F` is Next's escape for a leading underscore). The CSP comes from
@@ -380,13 +381,11 @@ days, no cookies:
   (the export's inline RSC payloads), so its value is `connect-src`,
   `frame-src`, `object-src` and `base-uri`, not XSS blocking. The form's
   no-JS `action="mailto:"` is why `form-action` lists `mailto:`.
-- **Clickjacking is handled in the page (R25)**: a meta CSP ignores
-  `frame-ancestors` and Pages sends no headers, so `FRAME_GUARD` in
-  `app/layout.tsx` sets `html.is-framed` when framed and `.framed-notice` in
-  `design/tokens.css` hides everything else. Localhost is exempt; production
-  builds only. Anything added as a direct child of `<body>` is hidden when
-  framed — that is the point, don't exempt it. Bypass: a sandboxed frame with
-  scripts off, where nothing that sends can run anyway.
+- **Clickjacking: `frame-ancestors 'none'` and `X-Frame-Options: DENY`**
+  headers (R27). The R25 in-page frame guard (`FRAME_GUARD`,
+  `.framed-notice`) was removed with the move: a browser now refuses to
+  render the page in a frame at all, so the notice could never show. Don't
+  re-add it unless the site goes back to a host without headers.
 - **CI**: `permissions: {}` at the top; only the deploy job holds `pages` and
   `id-token`, because the build job runs `npm ci`. Actions are pinned to commit
   SHAs; `.github/dependabot.yml` bumps them and all three `package.json`s.
