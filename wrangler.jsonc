@@ -1,0 +1,21 @@
+// portfolio — the site itself, served from Cloudflare (R27).
+// https://portfolio.ancientsky14.workers.dev
+//
+// Assets only: `out/` from `npm run build`, headers from out/_headers
+// (app/%5Fheaders/route.ts). There is deliberately no `main`. A script would
+// run on requests that are otherwise free static-asset hits, and could
+// bypass _headers. Deployed by .github/workflows/deploy.yml, never by hand
+// from a dirty tree.
+{
+	"$schema": "https://unpkg.com/wrangler/config-schema.json",
+	"name": "portfolio",
+	"account_id": "329448e53e1d471dfff2c9766b961a03",
+	"compatibility_date": "2026-09-17",
+	"assets": {
+		"directory": "./out",
+		// /work → /work/, matching trailingSlash: true in next.config.ts.
+		"html_handling": "auto-trailing-slash",
+		// Unknown paths get out/404.html with a 404 status.
+		"not_found_handling": "404-page"
+	}
+}

@@ -122,18 +122,38 @@ async function verifyTurnstile(
       body: form,
       signal: AbortSignal.timeout(10_000),
     });
-    if (!res.ok) return false;
+    if (!res.ok) {
+      console.error(`contact: siteverify answered HTTP ${res.status}`);
+      return false;
+    }
     const outcome = await res.json<{
       success?: boolean;
       hostname?: string;
+      "error-codes"?: string[];
       metadata?: { result_with_testing_key?: boolean };
     }>();
-    if (outcome.success !== true) return false;
-    return (
+    // Why a verification failed is otherwise invisible — a wrong secret and
+    // an expired token look the same to the visitor. Cloudflare's codes and
+    // the site's own hostname only; nothing about the visitor.
+    if (outcome.success !== true) {
+      console.error(
+        `contact: turnstile rejected: ${(outcome["error-codes"] ?? []).join(",") || "no codes"}`,
+      );
+      return false;
+    }
+    const ok =
       outcome.metadata?.result_with_testing_key === true ||
-      hostnames.includes(outcome.hostname ?? "")
+      hostnames.includes(outcome.hostname ?? "");
+    if (!ok) {
+      console.error(
+        `contact: turnstile hostname "${outcome.hostname}" not in ${hostnames.join(",")}`,
+      );
+    }
+    return ok;
+  } catch (err) {
+    console.error(
+      `contact: siteverify unreachable: ${err instanceof Error ? err.message : String(err)}`,
     );
-  } catch {
     return false;
   }
 }

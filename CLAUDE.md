@@ -110,6 +110,7 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
 | R21 | The three lab notes published — stale facts fixed, engineering-first wording | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R21" |
 | R22 | Lab "Try it" demos + "In short" — built, then **reverted by Jan** the same day | **reverted** 2026-09-17, `UPCOMING-FEATURES.md` "R22–R23" — don't rebuild without asking |
 | R24 | Security — CI least privilege + SHA pins + Dependabot, meta CSP, Worker rate limits and a daily send cap | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R24" — Workers need `wrangler deploy`; account checklist is Jan's |
+| R27 | Hosting → Cloudflare static assets for real security headers (`_headers` from `lib/csp.ts`) | **in progress** 2026-09-17, `UPCOMING-FEATURES.md` "R27" — commit A (both hosts) built and verified locally; commit B (Pages → redirect) after live check |
 | R25 | Security follow-up — frame guard, per-IP daily visit cap, secret scanning + push protection | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R25" — visits needs remote migration 0004 then deploy; Cloudflare 2FA + scoped token are Jan's |
 | R9 | Hardening — budgets, keyboard + contrast pass (OG image done in `UPCOMING-FEATURES.md` Phase 1) | **partial** 2026-09-14: a11y 100, JS/CLS met; LCP 2.2–2.6s, Performance 70–79, real Android unmeasured. R9b profiled it: the floor is Next/React hydration, not site code — `UPCOMING-FEATURES.md` "R9", "R9b" |
 
@@ -303,23 +304,42 @@ rejected: iOS requires a motion-permission prompt.
   the main bundle can reach. `@react-three/fiber` and `@react-three/drei` are
   deliberately not installed — one point cloud does not need a reconciler.
 
-## Deployment — GitHub Pages (static export)
+## Deployment — Cloudflare static assets (static export)
 
-`next.config.ts` sets `output: "export"`, `trailingSlash: true` and a
-`basePath` from `NEXT_PUBLIC_BASE_PATH` (`/portfolio` in CI, empty locally).
-`.github/workflows/deploy.yml` builds and publishes on every push to `portfolio`.
-The repo was renamed from `Portfolio` on 2026-09-14: Pages paths are
-case-sensitive, the old URL 404s rather than redirecting, and a rename means
-changing both env values in the workflow.
+**Moving from GitHub Pages to Cloudflare (R27, 2026-09-17)**, so the site
+can send real security headers; Pages can't. The live site is
+**https://portfolio.ancientsky14.workers.dev**: an assets-only Worker
+(root `wrangler.jsonc`, **no `main`**, so asset requests stay free and
+nothing bypasses `_headers`), built with no base path. Until the move is
+verified, `.github/workflows/deploy.yml` builds twice and also publishes the
+full site to `https://ancientsky14.github.io/portfolio/` (`basePath`
+`/portfolio`). After that, Pages serves only a redirect. The Pages path is
+case-sensitive: `/Portfolio/` has 404'd since the 2026-09-14 rename, and a
+header scanner pointed at it grades GitHub's 404 page.
 
-What that rules out — do not add any of these: request-time Route Handlers,
-Server Actions, `resend`, cookies, redirects/rewrites/headers, ISR,
+- **Headers live in `out/_headers`**, written by `app/%5Fheaders/route.ts`
+  (`%5F` is Next's escape for a leading underscore). The CSP comes from
+  `lib/csp.ts`, the same source as the `<meta>`. The CI build fails if the
+  file lacks a CSP, because a missing `_headers` deploys silently with no
+  headers. No COEP: it breaks the Turnstile iframe.
+- **Deploying:** the `deploy-cloudflare` job holds `CLOUDFLARE_API_TOKEN`
+  (the `cloudflare` environment, Workers Scripts: Edit only). It checks out
+  only `wrangler.jsonc` and runs a pinned `npx wrangler@x deploy` from a
+  folder with no `package.json`, so none of the site's dependencies run next
+  to the token. Keep it that way.
+- A new hostname for the site must also go into both Workers' origin lists
+  and the Turnstile widget, or the form fails with `verification failed`.
+
+What a static export rules out — do not add any of these: request-time
+Route Handlers, Server Actions, `resend`, cookies, Next redirects/rewrites/
+headers (headers go in `_headers`), ISR,
 `next/image` optimisation, dynamic routes without `generateStaticParams`.
 Metadata routes (`sitemap.ts`, `robots.ts`) need `export const dynamic =
 "force-static"`.
 
 The one allowed Route Handler kind is a `force-static` GET that the export
-turns into a file — `app/og/[card]/route.tsx`, amended with Jan on 2026-09-14.
+turns into a file — `app/og/[card]/route.tsx`, amended with Jan on 2026-09-14,
+and `app/%5Fheaders/route.ts` (R27).
 Nothing runs when a visitor requests it.
 
 The contact form (`components/contact/brief-form.tsx`) has two modes, fixed at
@@ -351,8 +371,10 @@ days, no cookies:
 
 ### Security (R24, 2026-09-17)
 
-- **CSP is a `<meta>` built in `lib/csp.ts`**, first in `<head>`, production
-  builds only. **Anything the browser loads from a new origin — script, fetch,
+- **CSP is built in `lib/csp.ts`** and shipped twice: as the
+  `Content-Security-Policy` header in `_headers` (plus `frame-ancestors
+  'none'`, R27) and as a `<meta>` first in `<head>` (production builds only)
+  that still protects any copy served without headers. **Anything the browser loads from a new origin — script, fetch,
   iframe, font, image — must be added there**, or it works in `npm run dev`
   and is blocked only on the built site. It allows `'unsafe-inline'` scripts
   (the export's inline RSC payloads), so its value is `connect-src`,

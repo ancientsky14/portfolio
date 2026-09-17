@@ -1322,6 +1322,32 @@ html.bg-showcase body {
 html.a11y-reduce-motion .select-pop {
   animation: none;
 }
+
+/* ── Verification — the brief form's Turnstile status (R26) ──────────
+   The card that frames Cloudflare's box rises in like a dropdown opening
+   upward; the pill's spinner turns while the check runs. Reduced motion:
+   the card is simply there and the spinner holds still. */
+.check-pop {
+  animation: select-pop-up 200ms var(--ease-out) both;
+}
+.check-spin {
+  animation: check-spin 900ms linear infinite;
+}
+@keyframes check-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .check-pop,
+  .check-spin {
+    animation: none;
+  }
+}
+html.a11y-reduce-motion .check-pop,
+html.a11y-reduce-motion .check-spin {
+  animation: none;
+}
 /* ── The name badge (components/shell/verified-badge.tsx) ───────────
    Army green, by Jan's request (2026-09-13) — an exception to the
    one-accent rule, like the brand-coloured tool marks. Lighter olive on

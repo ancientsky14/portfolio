@@ -1719,6 +1719,141 @@ before the migration carry `ip` NULL and count against nobody.
   `npx wrangler deploy`. The new code writes the `ip` column, so deploying
   first breaks counting until the migration runs.
 
+### Rollout, same day — and one unexplained failure
+
+- Pushed as `c1edb9a`; the visits migration and Worker deployed by Jan; the
+  contact Worker deployed from this session. Jan then created a scoped API
+  token and ran `wrangler logout`, so this PC has no Cloudflare login. Deploys
+  need `$env:CLOUDFLARE_API_TOKEN` in the terminal.
+- **The live form then failed with 400 `verification failed`** (Turnstile
+  siteverify rejected a fresh token although the widget showed Success).
+  This was reproduced from a headed Edge on the live page, so it wasn't the
+  browser. `verifyTurnstile()` was unchanged by R24 and the site key hadn't
+  changed since 09-14. The Worker discarded siteverify's `error-codes`, so the
+  cause was invisible. It now logs them (no visitor data). **After Jan
+  redeployed that version, the same test returned 200
+  `{stored: true, emailed: true}`. The cause is still unknown**: either Jan
+  re-set `TURNSTILE_SECRET`, or it was transient on Cloudflare's side. If it
+  recurs, run `npx wrangler tail --format pretty` and read the
+  `contact: turnstile …` line.
+- Dependabot opened PRs #1–#4, all **major** action bumps (checkout v7,
+  setup-node v7, upload-pages-artifact v5, deploy-pages v5). Not merged. Read
+  the release notes, bump the two Pages actions together, and merge one at a
+  time watching the deploy run.
+
+## R26 — Turnstile out of sight unless it needs a click (2026-09-17)
+
+Jan asked to improve Cloudflare's stock Turnstile box on `/contact` (grey
+panel, own border, orange logo; nothing in `design/tokens.css` applies to it).
+
+- **Decided: `appearance: "interaction-only"`, not a restyle.** The widget is
+  a cross-origin iframe, so no CSS or JS reaches inside it. Covering or faking
+  it breaks Cloudflare's terms. Now the check runs unseen, and the box appears
+  only on `before-interactive-callback` (`interactive` state in
+  `components/contact/brief-form.tsx`). While unseen, the container is
+  `h-0 overflow-hidden`, never `display:none`, because the check has to keep
+  running. It sits in the Send row's wrapper rather than the form grid, so an
+  empty container adds no 20px row gap.
+- **Design (same day, Jan's pick of "own status + framed box"):** Jan asked
+  for the box itself to be redesigned. It can't be, so the design lives around
+  it. `CheckStatus` is a pill in site tokens: *Checking your browser…* (a
+  spinner, `.check-spin`) → *Verified* (`text-ok`), or *Check hit a snag —
+  retrying…* (`text-warn`) after `error-callback`. Beside it is the "Protected
+  by Cloudflare Turnstile · Privacy" disclosure that an unseen widget owes the
+  visitor. When a click is needed the pill steps aside and the container
+  becomes a card (`.check-pop`, radius 20, `shadow-soft`) with an "One quick
+  check" heading around Cloudflare's untouched box. Turnstile renders into an
+  inner div of its own, because `remove()` empties its container. **Phones:**
+  `flexible` won't shrink below 300px, and at 360 the card's inside is ~236px,
+  so it pushed the page 30px sideways. `renderWidget` picks `compact` (150px)
+  when the room is under 300. Both animations stop under reduced motion,
+  including `html.a11y-reduce-motion`.
+- **Theme:** the widget's theme is fixed at render. A `MutationObserver` on
+  `<html>`'s class re-renders it when `.dark` flips. `theme: "auto"` was
+  rejected because it follows the OS, not the site's toggle.
+- **Verified locally** with Playwright against `next dev` and Cloudflare's test
+  site keys, swapped into `lib/site.ts` and reverted:
+  `1x00000000000000000000AA` gave a token with a 0px container, and
+  `3x00000000000000000000FF` showed the box at 72px, in dark after a theme
+  flip. **Not verified:** the real key on the live site, a real send.
+- **Open (Jan, dashboard):** the widget mode should be **Managed**. With
+  Non-interactive or Invisible, `interaction-only` changes nothing.
+- **Wrangler:** both Workers were bumped to 4.133.0. `wrangler login` (OAuth,
+  full-account scopes) was run again on this PC that day, after the scoped-token
+  logout above. Run `wrangler logout` again if the scoped token is the intent.
+
+**Watch, when testing `/contact` in a script:**
+- `page.goto(..., { waitUntil: "networkidle" })` never resolves on this site
+  (dev websocket, Workers, canvas). Use `"load"` and then wait.
+- On localhost the **real** site key renders nothing and returns no token (the
+  hostname isn't allowed). That is not a bug in the form, so use the test keys.
+- The test keys stamp "For testing only" on the widget, so never commit one.
+
+---
+
+## R27 — Hosting moves to Cloudflare for real security headers (2026-09-17)
+
+Jan ran a header scanner and got 17%. **The scan wasn't of the site.** He
+entered `ancientsky14.github.io/Portfolio/`, with a capital P, which has 404'd
+since the 09-14 rename. Its one "present" header,
+`default-src 'none'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'`,
+is GitHub's 404-page CSP. The real `/portfolio/` sends only HSTS: Pages can't
+set headers, and scanners never read `<meta>`. Jan chose to move to
+Cloudflare on workers.dev, with no custom domain.
+
+### Commit A — both hosts
+
+- Root `wrangler.jsonc`: assets-only Worker `portfolio`, `out/` with
+  `auto-trailing-slash` and `404-page`, and no `main`.
+- `out/_headers` from `app/%5Fheaders/route.ts`, with the CSP from `lib/csp.ts`
+  (`{ header: true }` adds `frame-ancestors 'none'`), X-Frame-Options DENY,
+  nosniff, Referrer-Policy, Permissions-Policy, COOP same-origin, CORP
+  same-origin. `/og/*` is CORP cross-origin (`!` removes the site-wide value
+  first) and `/_next/static/*` is immutable. No COEP, because it breaks
+  Turnstile.
+- Workflow: one build job builds twice (Pages with `/portfolio`, Cloudflare
+  with no base path) and fails if `out/_headers` has no CSP.
+  `deploy-cloudflare` holds the token, checks out only `wrangler.jsonc`, and
+  runs a pinned `npx wrangler@4.133.0 deploy` outside any `package.json`.
+  `deploy-pages` is unchanged.
+- Both Workers accept `https://portfolio.ancientsky14.workers.dev` as well as
+  github.io.
+
+### Verified locally
+
+- Typecheck and build pass. The export wrote `out/_headers` (979 bytes). The
+  sitemap, OG image and metadata URLs are all on the workers.dev domain.
+- `wrangler dev` on `out/` parsed 3 header rules:
+  - `/` and `/work/`: all seven headers.
+  - `/og/site.png`: `image/png` with a single CORP `cross-origin`.
+  - A chunk under `/_next/static/`: immutable.
+  - `/work`: 307 to `/work/`. `/nope/`: the 404 page with status 404.
+    `/_headers`: not served.
+- The browser check against it, with the header CSP and meta CSP together:
+  zero violations on the 11 pages and interactions. The Turnstile iframe loads
+  under COOP/CORP, the canvas mounts and the palette opens. The control fetch
+  was blocked by both policies.
+- `wrangler deploy --dry-run` passes for the site (235 files) and both Workers.
+
+### Owed by Jan before pushing commit A
+
+1. A new Cloudflare token for CI: *Account → Workers Scripts: Edit* only.
+   GitHub → Settings → Environments → new `cloudflare`, deployment branches:
+   `portfolio`. Then `gh secret set CLOUDFLARE_API_TOKEN --env cloudflare`,
+   and paste the token at the prompt.
+2. Cloudflare → Turnstile → the widget → add hostname
+   `portfolio.ancientsky14.workers.dev`.
+3. Deploy both Workers so they accept the new origin (`npx wrangler deploy` in
+   `workers/contact` and `workers/visits`).
+
+### Commit B — after the live check
+
+The Pages deploy becomes a redirect (`index.html` and `404.html` mapping
+`/portfolio/…` and `/Portfolio/…` to the same path on workers.dev). github.io
+comes off both Workers' origin lists and the Turnstile widget. The frame guard
+goes (the headers make a framed page refuse to render). README and
+`content/positioning.md` links move to the new URL.
+
 ---
 ## Budgets to re-check after each phase
 

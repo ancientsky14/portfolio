@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 /**
- * Built for GitHub Pages, which serves static files and runs no server.
+ * A static export. Served from Cloudflare static assets
+ * (https://portfolio.ancientsky14.workers.dev, root wrangler.jsonc, no base
+ * path) since R27; GitHub Pages below until the move is finished. Neither
+ * runs a server, so everything here still applies.
  *
  * What that costs, so it is not rediscovered later:
  *   · no Route Handlers, no Server Actions, no `resend` — the contact form

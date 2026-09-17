@@ -16,10 +16,13 @@ import {
   FileText,
   House,
   Lightbulb,
+  LoaderCircle,
   Mail,
   Minus,
   ScanSearch,
   Send,
+  ShieldAlert,
+  ShieldCheck,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -134,6 +137,56 @@ function loadTurnstile(): Promise<Turnstile> {
   return turnstileLoading;
 }
 
+/* ── The check, in the site's own voice ────────────────────────────── */
+
+type Check = "checking" | "verified" | "retrying" | "interactive";
+
+const CHECK_PILL: Record<Exclude<Check, "interactive">, { icon: typeof ShieldCheck; tone: string; label: string }> = {
+  checking: { icon: LoaderCircle, tone: "check-spin text-text-3", label: "Checking your browser…" },
+  verified: { icon: ShieldCheck, tone: "text-ok", label: "Verified" },
+  retrying: { icon: ShieldAlert, tone: "text-warn", label: "Check hit a snag — retrying…" },
+};
+
+/**
+ * What the visitor sees of Turnstile. Cloudflare's own box is a cross-origin
+ * iframe that cannot be restyled, and faking or covering it breaks their
+ * terms, so it stays hidden (`interaction-only`) and this pill reports the
+ * check instead. It carries the disclosure Cloudflare expects of an unseen
+ * widget. When a click is needed the framed card below the fields speaks,
+ * and the pill steps aside.
+ */
+function CheckStatus({ check }: { check: Check }) {
+  if (check === "interactive") return null;
+  const { icon: Icon, tone, label } = CHECK_PILL[check];
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-3">
+      <span
+        role="status"
+        className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 font-medium text-text-2"
+      >
+        <Icon
+          size={14}
+          strokeWidth={2}
+          aria-hidden="true"
+          className={cn("shrink-0 transition-colors duration-300 ease-(--ease-out)", tone)}
+        />
+        {label}
+      </span>
+      <span>
+        Protected by Cloudflare Turnstile ·{" "}
+        <a
+          href="https://www.cloudflare.com/privacypolicy/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-sm underline-offset-2 hover:text-text-2 hover:underline"
+        >
+          Privacy
+        </a>
+      </span>
+    </div>
+  );
+}
+
 /* ── The form ──────────────────────────────────────────────────────── */
 
 function readBrief(form: HTMLFormElement, mode: BriefMode): Brief {
@@ -184,6 +237,10 @@ export function BriefForm() {
   const [sentTo, setSentTo] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [turnstileDown, setTurnstileDown] = useState(false);
+  // Cloudflare wants a click from this visitor, so its box is showing.
+  const [interactive, setInteractive] = useState(false);
+  // Turnstile reported an error; it retries on its own.
+  const [checkError, setCheckError] = useState(false);
   // The brief as it was when sending failed — what the fallback link carries.
   const [fallbackBrief, setFallbackBrief] = useState<Brief | null>(null);
   const [copy, setCopy] = useState<"idle" | "done" | "failed">("idle");
@@ -195,25 +252,60 @@ export function BriefForm() {
   const sent = status === "sent";
 
   // The Turnstile widget: sending mode only, and only while the form shows.
+  // `interaction-only`: the check runs unseen, and Cloudflare's box appears
+  // only when this visitor has to click it. Its inside is a cross-origin
+  // iframe — it cannot be restyled, so it is kept out of sight instead.
   useEffect(() => {
     if (!CONTACT_SENDS || sent) return;
     let cancelled = false;
+    let observer: MutationObserver | null = null;
+
+    const isDark = () => document.documentElement.classList.contains("dark");
+
+    function renderWidget(ts: Turnstile) {
+      if (!widget.current) return;
+      if (widgetId.current) ts.remove(widgetId.current);
+      setToken(null);
+      setInteractive(false);
+      setCheckError(false);
+      // `flexible` will not shrink below 300px. Inside the card's padding a
+      // 360px phone leaves ~236, so the box pushed the page sideways there —
+      // take Cloudflare's 150px compact box when the card is narrower.
+      const room = (widget.current.parentElement?.parentElement?.clientWidth ?? 0) - 40;
+      widgetId.current = ts.render(widget.current, {
+        sitekey: SITE.turnstileSiteKey,
+        action: "contact",
+        size: room >= 300 ? "flexible" : "compact",
+        appearance: "interaction-only",
+        theme: isDark() ? "dark" : "light",
+        callback: (t: string) => {
+          setToken(t);
+          setCheckError(false);
+          setStatus((s) => (s === "check" ? "idle" : s));
+        },
+        "expired-callback": () => setToken(null),
+        "error-callback": () => {
+          setToken(null);
+          setCheckError(true);
+        },
+        "before-interactive-callback": () => setInteractive(true),
+        "after-interactive-callback": () => setInteractive(false),
+      });
+    }
 
     loadTurnstile()
       .then((ts) => {
-        if (cancelled || !widget.current) return;
-        widgetId.current = ts.render(widget.current, {
-          sitekey: SITE.turnstileSiteKey,
-          action: "contact",
-          size: "flexible",
-          theme: document.documentElement.classList.contains("dark") ? "dark" : "light",
-          callback: (t: string) => {
-            setToken(t);
-            setStatus((s) => (s === "check" ? "idle" : s));
-          },
-          "expired-callback": () => setToken(null),
-          "error-callback": () => setToken(null),
+        if (cancelled) return;
+        renderWidget(ts);
+        // The theme is fixed at render, so follow the site's toggle by
+        // rendering again — `theme: "auto"` follows the OS, not `.dark`.
+        let dark = isDark();
+        observer = new MutationObserver(() => {
+          if (isDark() === dark) return;
+          dark = isDark();
+          renderWidget(ts);
         });
+        observer.observe(document.documentElement, { attributeFilter: ["class"] });
       })
       .catch(() => {
         if (!cancelled) setTurnstileDown(true);
@@ -221,11 +313,22 @@ export function BriefForm() {
 
     return () => {
       cancelled = true;
+      observer?.disconnect();
       if (widgetId.current) window.turnstile?.remove(widgetId.current);
       widgetId.current = null;
       setToken(null);
+      setInteractive(false);
+      setCheckError(false);
     };
   }, [sent]);
+
+  const check: Check = interactive
+    ? "interactive"
+    : token
+      ? "verified"
+      : checkError
+        ? "retrying"
+        : "checking";
 
   // Move focus to the confirmation, so it is announced and Tab starts there.
   useEffect(() => {
@@ -321,7 +424,9 @@ export function BriefForm() {
           ? "The verification check didn't load, so sending will open your mail app instead."
           : "Goes straight to my inbox and is kept at most 90 days. Your email is used only to reply.",
         opened: "",
-        check: "Finish the verification check above, then send.",
+        check: interactive
+          ? "Finish the quick check above, then send."
+          : "Still checking your browser — send again in a moment.",
         sending: "Sending…",
         sent: "",
         fallback: {
@@ -486,30 +591,58 @@ export function BriefForm() {
         </>
       )}
 
-      {/* Turnstile draws its check here. The height is held so the button
-          does not jump when it appears. */}
-      {CONTACT_SENDS && !turnstileDown ? (
-        <div ref={widget} className="min-h-16 sm:col-span-2" />
-      ) : null}
+      <div className="sm:col-span-2">
+        {/* Turnstile draws its check into `widget`. Unseen, the frame takes
+            no height — it sits in this wrapper rather than the grid, so it
+            adds no row gap either. Never display:none: the check has to run.
+            When a click is needed the frame becomes a card around the box;
+            the heading is ours, the box inside is Cloudflare's, untouched.
+            The inner div is Turnstile's alone — remove() empties it. */}
+        {CONTACT_SENDS && !turnstileDown ? (
+          <>
+            <div
+              className={
+                interactive
+                  ? "check-pop mb-5 rounded-lg border border-line bg-surface-2 p-4 shadow-soft sm:p-5"
+                  : "h-0 overflow-hidden"
+              }
+            >
+              {interactive ? (
+                <div className="mb-3">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-text">
+                    <ShieldCheck size={16} strokeWidth={1.75} aria-hidden="true" className="text-accent" />
+                    One quick check
+                  </p>
+                  <p className="mt-1 text-xs text-text-3">
+                    Cloudflare wants a click to confirm you&apos;re not a bot. It takes a second.
+                  </p>
+                </div>
+              ) : null}
+              <div ref={widget} className={interactive ? "min-h-16" : undefined} />
+            </div>
+            <CheckStatus check={check} />
+          </>
+        ) : null}
 
-      <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
-        <button
-          type="submit"
-          disabled={status === "sending"}
-          className="group inline-flex items-center gap-2 rounded-full bg-accent py-2.5 pl-5 pr-4 text-sm font-medium text-accent-ink transition-opacity hover:opacity-90 disabled:cursor-progress disabled:opacity-70"
-        >
-          {CONTACT_SENDS ? (status === "sending" ? "Sending…" : "Send") : "Write the email"}
-          <Send
-            size={15}
-            strokeWidth={2}
-            aria-hidden="true"
-            className="transition-transform duration-300 ease-(--ease-out) group-hover:translate-x-0.5"
-          />
-        </button>
+        <div className="flex flex-wrap items-center gap-4">
+          <button
+            type="submit"
+            disabled={status === "sending"}
+            className="group inline-flex items-center gap-2 rounded-full bg-accent py-2.5 pl-5 pr-4 text-sm font-medium text-accent-ink transition-opacity hover:opacity-90 disabled:cursor-progress disabled:opacity-70"
+          >
+            {CONTACT_SENDS ? (status === "sending" ? "Sending…" : "Send") : "Write the email"}
+            <Send
+              size={15}
+              strokeWidth={2}
+              aria-hidden="true"
+              className="transition-transform duration-300 ease-(--ease-out) group-hover:translate-x-0.5"
+            />
+          </button>
 
-        <p aria-live="polite" className="text-sm text-text-3">
-          {note}
-        </p>
+          <p aria-live="polite" className="text-sm text-text-3">
+            {note}
+          </p>
+        </div>
       </div>
 
       {/* Sending failed: the visitor's own click opens the mail app. */}

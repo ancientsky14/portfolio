@@ -1,25 +1,29 @@
-# Builds the static export and publishes it to GitHub Pages.
+# Builds the static export and publishes it — to Cloudflare, and (until the
+# move is finished) to GitHub Pages.
 #
-# One-time setup in the repo: Settings → Pages → Build and deployment →
-# Source: "GitHub Actions". Nothing else — no gh-pages branch, no token.
+# Cloudflare (R27): https://portfolio.ancientsky14.workers.dev, an assets-only
+# Worker (wrangler.jsonc at the repo root) that serves real security headers
+# from out/_headers. Built with no base path. Needs the `cloudflare`
+# environment (Settings → Environments, branch `portfolio` only) holding
+# CLOUDFLARE_API_TOKEN — a token with Account → Workers Scripts: Edit and
+# nothing else.
 #
-# The site is served from https://ancientsky14.github.io/portfolio/, so the
-# build runs with NEXT_PUBLIC_BASE_PATH=/portfolio. The path follows the repo
-# name, case and all: renaming the repo means changing both values below. If
-# the site moves to a custom domain, set that variable to "" and add
-# public/CNAME.
+# GitHub Pages: https://ancientsky14.github.io/portfolio/, built with
+# NEXT_PUBLIC_BASE_PATH=/portfolio — the path follows the repo name, case and
+# all. Kept serving the full site while the Cloudflare copy is verified; it
+# becomes a redirect afterwards (R27, commit B).
 
-name: Deploy to GitHub Pages
+name: Deploy
 
 on:
   push:
     branches: [portfolio]
   workflow_dispatch:
 
-# Security (R23): no permissions by default; each job asks for its own. The
+# Security (R24): no permissions by default; each job asks for its own. The
 # build job runs `npm ci` — every dependency's install scripts — so it gets
-# read access only. Deploy rights (pages, id-token) live in the deploy job,
-# which runs no third-party package code.
+# read access only and never sees a deploy credential. Deploy rights live in
+# the deploy jobs, which install nothing from the site's package.json.
 #
 # Actions are pinned to full commit SHAs, not tags: a tag can be moved to
 # different code, a SHA cannot. Dependabot (.github/dependabot.yml) keeps
@@ -57,17 +61,68 @@ jobs:
 
       - run: npm run typecheck
 
-      - name: Build static export
-        run: npm run build
+      - name: Build for GitHub Pages
+        run: npm run build && mv out out-pages
         env:
           NEXT_PUBLIC_BASE_PATH: /portfolio
           NEXT_PUBLIC_SITE_URL: https://ancientsky14.github.io/portfolio
 
+      - name: Build for Cloudflare
+        run: npm run build
+        env:
+          NEXT_PUBLIC_BASE_PATH: ""
+          NEXT_PUBLIC_SITE_URL: https://portfolio.ancientsky14.workers.dev
+
+      # A missing _headers would deploy a site with no security headers and
+      # no error anywhere. Fail loudly instead.
+      - name: Check the headers file
+        run: grep -q "Content-Security-Policy" out/_headers
+
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
-          path: out
+          path: out-pages
 
-  deploy:
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: site-cloudflare
+          path: out
+          retention-days: 1
+
+  deploy-cloudflare:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment:
+      name: cloudflare
+      url: https://portfolio.ancientsky14.workers.dev
+    steps:
+      # Only wrangler.jsonc — nothing from package.json is installed in the
+      # job that holds the Cloudflare token.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          path: site
+          sparse-checkout: wrangler.jsonc
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: site-cloudflare
+          path: site/out
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      # Pinned wrangler, run from a folder with no package.json.
+      - name: Deploy to Cloudflare
+        working-directory: site
+        run: npx --yes wrangler@4.133.0 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+  deploy-pages:
     needs: build
     runs-on: ubuntu-latest
     permissions:

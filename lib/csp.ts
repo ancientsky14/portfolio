@@ -35,7 +35,13 @@ const TURNSTILE = "https://challenges.cloudflare.com";
 
 const originOf = (url: string | null) => (url ? new URL(url).origin : null);
 
-export function contentSecurityPolicy(): string {
+/**
+ * `header: true` is the HTTP-header copy served through `_headers` on
+ * Cloudflare (app/%5Fheaders/route.ts, R27). It adds `frame-ancestors`, which
+ * only works as a header — in a <meta> browsers ignore it and log a warning.
+ * Both copies come from here, so they cannot drift apart.
+ */
+export function contentSecurityPolicy({ header = false }: { header?: boolean } = {}): string {
   const workers = [SITE.visitsApi, SITE.contactApi].map(originOf).filter(Boolean);
   const policy: Record<string, (string | null)[]> = {
     "default-src": ["'self'"],
@@ -51,6 +57,7 @@ export function contentSecurityPolicy(): string {
     "base-uri": ["'self'"],
     // The brief form's no-JavaScript path is `action="mailto:…"`.
     "form-action": ["'self'", "mailto:"],
+    ...(header ? { "frame-ancestors": ["'none'"] } : {}),
   };
   return Object.entries(policy)
     .map(([directive, sources]) => `${directive} ${sources.filter(Boolean).join(" ")}`)

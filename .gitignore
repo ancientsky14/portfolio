@@ -22,6 +22,9 @@ public/work/*/*.full.webm
 workers/visits/.wrangler/
 workers/visits/.dev.vars
 
+# the site's own Worker (root wrangler.jsonc) — local dev state
+/.wrangler/
+
 # contact Worker — local D1 state and local secrets
 workers/contact/.wrangler/
 workers/contact/.dev.vars

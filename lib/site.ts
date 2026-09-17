@@ -12,8 +12,8 @@ export const SITE = {
 
   /**
    * Absolute site URL, no trailing slash. Drives metadataBase, the sitemap
-   * and robots.txt. The Pages workflow sets it to
-   * https://ancientsky14.github.io/portfolio.
+   * and robots.txt. The deploy workflow sets it to
+   * https://portfolio.ancientsky14.workers.dev (Cloudflare, R27).
    */
   url: (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(
     /\/$/,
