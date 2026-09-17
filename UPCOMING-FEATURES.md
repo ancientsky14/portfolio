@@ -1222,13 +1222,18 @@ Jan asked how phone and tablet visitors feel the pointer effect. They didn't:
 so a touchscreen never moved `uMouse`. Touch users did already get the scroll
 drift and the fast-flick ripple on every page; those stay.
 
-**Decided (Jan): touch moves the islands only during the showcase.** Rejected,
-so neither gets re-proposed:
+**Decided (Jan): touch moves the islands only during the showcase.** Rejected
+at the time:
 
 - *Touch on every page, like the mouse* — every touch there is a scroll or a
   link tap, the field sits at 0.35 × 0.6 = 21% behind opaque cards, and the
   finger covers the spot it pushes. Mostly invisible, and it would run during
   every scroll on the device the budget is written for.
+
+  > **Reversed in R19, and the last clause was wrong.** The shader computes the
+  > push for every point on every frame whether anyone touches or not;
+  > following a finger costs one vector update per touch event. Don't cite
+  > performance against touch-everywhere.
 - *Device tilt* — Android works silently, but iOS requires a
   motion-permission prompt from a tap. A permission dialog on a portfolio
   reads as a red flag, and every visitor who declines gets nothing.
@@ -1305,6 +1310,75 @@ regex in the test matching the "3s" inside "0.3s"; the resting values
 
 **Not measured:** a real phone. SwiftShader proves the logic and the shape of
 the parting, not the frame rate under a dragging finger.
+
+---
+
+## R19 — Touch parts the islands on every page (2026-09-17)
+
+Jan tested R18 on a real Android phone, confirmed it works, and asked for it
+wherever he touches, not only in the showcase.
+
+### The correction that reopened it
+
+R18 turned this down partly because it "would run during every scroll on the
+device the budget is written for". That was weak reasoning: the vertex shader
+computes the push for every point on every frame regardless, so following a
+finger adds one vector update per touch event. What stands is only that the
+effect is **subtler** off the showcase — the field is faint (0.35 on the home
+page, 0.21 on inner pages) and sits behind opaque cards, so the parting shows
+in the gaps. Subtle, not broken.
+
+### The one real obstacle — and why touch events
+
+R18's touch path used pointer events, which worked only because the showcase
+sets `touch-action: none`. On an ordinary page the browser owns panning: the
+moment a drag becomes a scroll it fires `pointercancel` and stops the pointer
+stream. The hole would appear on touchdown and die a few pixels into every
+scroll — i.e. on nearly every touch a phone visitor makes.
+
+**Touch events keep firing through a scroll.** Touch input now comes from
+passive `touchstart`/`touchmove`/`touchend`/`touchcancel` on the window —
+passive, so they can never delay scrolling. The mouse stays on pointer events
+filtered to `pointerType === "mouse"`, so desktop is untouched and a touch
+laptop still gets each input on its own path.
+
+### Also
+
+- **One finger.** The first touch's `identifier` is tracked; a pinch's second
+  finger is ignored, and only lifting the tracked finger releases.
+- **Re-mapped every frame while held.** The field keeps drifting after a
+  scroll. Mapping the finger only when a `touchmove` arrived would let the
+  hole slide out from under a finger resting still; the tick now re-maps the
+  last known finger position each frame (found while writing it, not in the
+  plan).
+- Everything from R18 carries over: in-place fade via `uPush`, `uReach` 0.6
+  with the push scaled to it, drift undone for touch, release when a show ends
+  under a held finger, and in the showcase the scroll lock and the
+  short-and-still tap rule.
+
+### Verified
+
+On the home page, where the field is strongest, at 390×844 and 768×1024, with
+page content hidden by injected CSS only for the pixel measurements (layout
+kept, so the page still scrolls and still receives touch):
+
+- a finger held on the page clears the field around it (978 → 0 on the phone,
+  2520 → 0 on the tablet) and lifting lets it close (→ 1010 / 2567);
+- **a drag still scrolls the page** (scrollY 0 → 285), and with the finger
+  still down after the pan the field under it reads 0, against 932 / 1979 once
+  lifted — the hole survives the scroll instead of dying on `pointercancel`;
+- a second finger moving elsewhere leaves the hole with the first;
+- on the real page, a tap on the tab bar still navigates to `/work/` and a tap
+  on a home card to `/services/`;
+- the longest event across repeated touch drags was 72 / 80ms under software
+  rendering, inside the 200ms INP budget.
+
+The full R18 touch suite (showcase drag, press-and-hold, tap exits, no leftover
+hole, mouse unchanged) and the R17 showcase suite were re-run: all pass.
+
+**Owed by Jan:** scroll `/`, `/work/` and `/about/` on the real Android phone
+and confirm scrolling feels exactly as it did. Passive listeners should make
+that a formality, but the emulator is not the device.
 
 ---
 

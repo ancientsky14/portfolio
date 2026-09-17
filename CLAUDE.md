@@ -104,7 +104,8 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
 | R15 | /about was clipping 152px of itself; the overflow check that missed it | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R15" |
 | R16 | Socials once per viewport — rail from lg, footer below it | **done** 2026-09-16, `UPCOMING-FEATURES.md` "R16" |
 | R17 | Archipelago showcase — the shell steps aside, the field resolves from nothing | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R17" |
-| R18 | Touch — drag to part the islands during the showcase | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R18" |
+| R18 | Touch — drag to part the islands during the showcase | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R18" — verified on a real Android phone |
+| R19 | Touch parts the islands on every page — touch events, so it survives a scroll | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R19" |
 | R9 | Hardening — budgets, keyboard + contrast pass (OG image done in `UPCOMING-FEATURES.md` Phase 1) | **partial** 2026-09-14: a11y 100, JS/CLS met; LCP 2.2–2.6s, Performance 70–79, real Android unmeasured. R9b profiled it: the floor is Next/React hydration, not site code — `UPCOMING-FEATURES.md` "R9", "R9b" |
 
 ### The shell
@@ -234,19 +235,32 @@ the shell before the click landed, which navigated to whatever link was
 under the finger. Opacity only on the shell: a transform would capture its
 `position: fixed` descendants. The island placement is unchanged.
 
-**Touch parts the islands only during the showcase** (R18, Jan's call). On an
-ordinary page every touch is a scroll or a link, the field is faint behind the
-cards, and the finger hides the push — touch users there keep the scroll drift
-and the flick ripple. Rules the code holds to: mouse vs touch is decided **per
-event by `pointerType`**, never a media query (touch laptops send both); a
-touch fades in and out *in place* via `uPush` rather than easing `uMouse` from
-off-screen, which flew the hole in from a corner; the push scales with
-`uReach`, so a fingertip gets the mouse's soft dent rather than a hard empty
-disc; `touch-action: none` is scoped to `html.bg-showcase`, or the browser
-claims the drag as a scroll and cancels the touch stream. And **a tap is short
-AND still** (<350ms, <10px) — holding a finger on the islands and lifting it
-used to count as a tap and end the show. Device tilt was rejected: iOS
-requires a motion-permission prompt.
+**A finger parts the islands on every page** (R19, 2026-09-17; R18 had it in
+the showcase only). Jan verified R18 on a real Android phone first. Rules the
+code holds to:
+
+- **Touch uses touch events, not pointer events** — passive
+  `touchstart`/`touchmove`/`touchend`/`touchcancel`. On an ordinary page the
+  browser owns panning and fires `pointercancel` the moment a drag becomes a
+  scroll, which killed the hole a few pixels into every scroll. Touch events
+  keep firing through a scroll, and passive listeners cannot delay it. The
+  mouse stays on pointer events filtered to `pointerType === "mouse"`. Split
+  by input, never by media query — touch laptops send both.
+- One tracked finger (its `identifier`); a pinch's second finger is ignored.
+- A held finger is re-mapped **every frame**, not only on touchmove, or the
+  hole slides out from under a still finger while the field keeps drifting
+  after a scroll.
+- A touch fades in and out *in place* via `uPush` rather than easing `uMouse`
+  from off-screen (which flew the hole in from a corner); the push scales with
+  `uReach`, so a fingertip gets the mouse's soft dent, not a hard empty disc.
+- In the showcase, `touch-action: none` is scoped to `html.bg-showcase` so the
+  dimmed page cannot scroll under a drag, and **a tap is short AND still**
+  (<350ms, <10px) — holding a finger on the islands and lifting it used to end
+  the show.
+
+Off the showcase the effect is subtler by nature, not broken: the field is
+faint and sits behind opaque cards, so it shows in the gaps. Device tilt was
+rejected: iOS requires a motion-permission prompt.
 
 ## Conventions
 

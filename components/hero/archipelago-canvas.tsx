@@ -252,25 +252,36 @@ export default function ArchipelagoCanvas() {
       attributeFilter: ["class"],
     });
 
-    // ── pointer — from the window; the layer takes no pointer events ──
-    // A mouse parts the islands on every page, as it always has. A finger
-    // parts them only during the /lab showcase (R18): on an ordinary page
-    // every touch is a scroll or a link, the field is faint behind the cards,
-    // and the finger covers the push it causes. Decided per event by
-    // `pointerType`, never by media query — a touch laptop, or an iPad with a
-    // trackpad, sends both.
+    // ── pointer and touch — from the window; the layer takes neither ──
+    // A mouse and a finger both part the islands, on every page (R19; R18 had
+    // touch in the /lab showcase only). They take different event paths, and
+    // that is load-bearing:
+    //   · mouse → pointer events, filtered to pointerType "mouse";
+    //   · touch → touch events, passive.
+    // Not pointer events for touch: on an ordinary page the browser owns
+    // panning, and the moment a drag becomes a scroll it fires pointercancel
+    // and stops the pointer stream — the hole would appear on touchdown and
+    // die a few pixels into every scroll. Touch events keep firing through a
+    // scroll, and passive listeners can never delay it. Split by input, never
+    // by media query: a touch laptop or an iPad with a trackpad sends both.
     const pointerFine = window.matchMedia("(pointer: fine)").matches;
     const mouseTarget = new THREE.Vector2(99, 99);
     const OFF = 99;
-    // The showcase flag, read by the pointer handlers below and set by
-    // onShowcase further down.
+    // The showcase flag, set by onShowcase further down.
     let showing = false;
+    // One tracked finger; a second (a pinch) is ignored.
     let touchId: number | null = null;
+    const touchAt = { x: 0, y: 0 };
 
-    function toField(e: PointerEvent, v: THREE.Vector2, undoDrift: boolean) {
+    function toField(
+      clientX: number,
+      clientY: number,
+      v: THREE.Vector2,
+      undoDrift: boolean,
+    ) {
       const { halfW, halfH } = halfExtent(aspect);
-      const nx = (e.clientX / window.innerWidth) * 2 - 1;
-      const ny = -((e.clientY / window.innerHeight) * 2 - 1);
+      const nx = (clientX / window.innerWidth) * 2 - 1;
+      const ny = -((clientY / window.innerHeight) * 2 - 1);
       // Touch undoes the field's scroll drift, as onAttract does, or the
       // hole sits beside the finger on a scrolled phone page. The mouse keeps
       // its original mapping so desktop behaves exactly as before.
@@ -297,10 +308,14 @@ export default function ArchipelagoCanvas() {
         },
       });
     }
-    function onPointerDown(e: PointerEvent) {
-      if (e.pointerType === "mouse" || !showing) return;
-      touchId = e.pointerId;
-      toField(e, mouseTarget, true);
+    function onTouchStart(e: TouchEvent) {
+      if (touchId !== null) return;
+      const t = e.changedTouches[0];
+      if (!t) return;
+      touchId = t.identifier;
+      touchAt.x = t.clientX;
+      touchAt.y = t.clientY;
+      toField(t.clientX, t.clientY, mouseTarget, true);
       uniforms.uMouse.value.copy(mouseTarget);
       uniforms.uReach.value = TOUCH_REACH;
       gsap.fromTo(
@@ -309,25 +324,34 @@ export default function ArchipelagoCanvas() {
         { value: 1, duration: D.fast, ease: E, overwrite: true },
       );
     }
-    function onPointerMove(e: PointerEvent) {
-      if (e.pointerType === "mouse") {
-        if (!pointerFine || touchId !== null) return;
-        uniforms.uReach.value = MOUSE_REACH;
-        toField(e, mouseTarget, false);
-        return;
+    function tracked(list: TouchList) {
+      for (let i = 0; i < list.length; i++) {
+        if (list[i].identifier === touchId) return list[i];
       }
-      if (showing && e.pointerId === touchId) toField(e, mouseTarget, true);
+      return null;
     }
-    function onPointerUp(e: PointerEvent) {
-      if (e.pointerId === touchId) releaseTouch();
+    function onTouchMove(e: TouchEvent) {
+      const t = touchId === null ? null : tracked(e.changedTouches);
+      if (!t) return;
+      touchAt.x = t.clientX;
+      touchAt.y = t.clientY;
+    }
+    function onTouchEnd(e: TouchEvent) {
+      if (touchId !== null && tracked(e.changedTouches)) releaseTouch();
+    }
+    function onPointerMove(e: PointerEvent) {
+      if (e.pointerType !== "mouse" || !pointerFine || touchId !== null) return;
+      uniforms.uReach.value = MOUSE_REACH;
+      toField(e.clientX, e.clientY, mouseTarget, false);
     }
     function onPointerOut(e: PointerEvent) {
       if (e.pointerType === "mouse" && !e.relatedTarget) mouseTarget.set(OFF, OFF);
     }
-    window.addEventListener("pointerdown", onPointerDown, { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
     window.addEventListener("pointermove", onPointerMove, { passive: true });
-    window.addEventListener("pointerup", onPointerUp, { passive: true });
-    window.addEventListener("pointercancel", onPointerUp, { passive: true });
     document.addEventListener("pointerout", onPointerOut);
 
     // ── scroll — a gentle drift, from whichever element scrolls ────────
@@ -474,6 +498,10 @@ export default function ArchipelagoCanvas() {
       if (hidden) return;
       timer.update();
       uniforms.uTime.value = timer.getElapsed();
+      // A held finger is re-mapped every frame, not only when a touchmove
+      // arrives: the field keeps drifting after a scroll, and a finger resting
+      // still would otherwise watch its hole slide out from under it.
+      if (touchId !== null) toField(touchAt.x, touchAt.y, mouseTarget, true);
       uniforms.uMouse.value.lerp(mouseTarget, 0.12);
       uniforms.uAttract.value.lerp(attractTarget, 0.14);
       uniforms.uPull.value += (pullTarget - uniforms.uPull.value) * 0.06;
@@ -505,10 +533,11 @@ export default function ArchipelagoCanvas() {
       window.removeEventListener(BG_EVENT.scatter, onScatter);
       window.removeEventListener(BG_EVENT.gather, onGather);
       window.removeEventListener(BG_EVENT.showcase, onShowcase);
-      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
       window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onPointerUp);
       document.removeEventListener("pointerout", onPointerOut);
       geometry.dispose();
       material.dispose();
