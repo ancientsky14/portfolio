@@ -322,6 +322,18 @@ repos. A header scanner pointed at any github.io address grades a redirect
 page, not this site. `NEXT_PUBLIC_BASE_PATH`
 support stays in the code but is unused.
 
+**The `portfolio.` prefix is structural, not a choice** (asked 2026-09-23): a
+workers.dev site is always `<worker-name>.<account-subdomain>.workers.dev`,
+and the bare `ancientsky14.workers.dev` has an SOA record and no A record, so
+nothing routes there. Only the prefix can change. Jan was offered a Pages
+project named `ancientsky14` (`ancientsky14.pages.dev` — the name looks free,
+and Pages reads the same `_headers`, but Cloudflare now says to start new
+projects on Workers) and a custom domain, and **chose to keep the URL as it
+is**. Changing it later means redoing all of: both Workers' origin lists, the
+Turnstile widget hostname, this repo's `redirect/` and the
+`ancientsky14/ancientsky14.github.io` repo, `NEXT_PUBLIC_SITE_URL` in the
+workflow, README and `content/positioning.md`.
+
 - **Headers live in `out/_headers`**, written by `app/%5Fheaders/route.ts`
   (`%5F` is Next's escape for a leading underscore). The CSP comes from
   `lib/csp.ts`, the same source as the `<meta>`. The CI build fails if the
