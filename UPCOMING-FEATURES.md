@@ -1939,6 +1939,64 @@ on Windows with `EPERM unlink …lightningcss.win32-x64-msvc.node`, *after*
 deleting most of `node_modules`. Stop the dev server first.
 
 ---
+
+## R29 — Bigger archipelago dots (2026-09-24)
+
+Jan asked for larger dots in the background field and picked **+50%**, on both
+laptop and phone. One uniform carries it, in
+`components/hero/archipelago-canvas.tsx`:
+
+| | before | after | rendered |
+|---|---|---|---|
+| desktop `uSize` | 16 | **24** | ~2.6px → ~3.9px |
+| phone `uSize` (≤640px) | 13 | **20** | ~2.1px → ~3.2px |
+
+`gl_PointSize = uSize * uPixelRatio * (1.0 / -mv.z)`, so with the pixel ratio
+capped at 1.5 and the camera at z 6.2 the CSS size is `uSize / 6.2`. Point
+count, opacity, colours, repulsion radii and the showcase are untouched.
+
+### Measured, not eyeballed
+
+Crops of bare field (no text, no cards), same box before and after, read back
+through a 2D canvas — `readPixels` on the live canvas returns an already
+cleared buffer, so the numbers come from the screenshots:
+
+| crop | ink coverage | mean painted run |
+|---|---|---|
+| 1280 light, home | 40.0% → **60.6%** | 5.16px → **10.24px** |
+| 1280 dark, home | 36.9% → **57.1%** | 4.78px → **9.13px** |
+| 390 light, home | 3.2% → **7.3%** | 2.04px → **3.20px** |
+| 390 dark, home | 2.3% → **5.6%** | 1.71px → **2.70px** |
+
+The phone's mean run grows ×1.57, which is the +50% asked for. The 1280
+figure doubles instead, because in the dense chain neighbouring dots now touch
+and merge into one run — that is the fill-rate cost showing up, not a bigger
+dot than specified.
+
+- **Frame time** at 390 with 4× CPU throttling: median 16.7ms, p95 16.8ms,
+  both before and after, idle and during a pointer drag. **That is a vsync
+  cap on a software renderer (SwiftShader), not evidence about a real phone
+  GPU** — the honest statement is that nothing regressed locally and the
+  budget still needs a real mid-range Android (see "R9", step 4).
+- **First-load JS** unchanged: `/` 193.6KB, `/lab/` 195.2KB gzip. A uniform
+  value cannot move it; measured anyway.
+- **The showcase still reads.** Frames captured through the 5s assemble on
+  `/lab/archipelago/` at full strength (0.95): the chain is denser but
+  individual points stay separate — no solid mass. No page errors.
+- Screenshots at 390 and 1280, light and dark, on `/` and `/lab/archipelago/`:
+  the field is clearly more present and the body copy over it is still
+  legible.
+
+**If a phone ever drops frames**, lower the mobile number (20 → 18). Don't cut
+the point count: the Archipelago note publishes 30,000 / 12,000. If the dots
+start competing with the text instead, the lever is `uOpacity`, not the size
+Jan chose.
+
+**Trap:** Playwright's browsers were bumped by Dependabot, so the pinned
+Chromium had to be re-downloaded (`npx playwright install chromium
+--only-shell`) before any of this could run.
+
+---
 ## Budgets to re-check after each phase
 
 From CLAUDE.md: LCP < 2.0 s on 4G mid-range Android · CLS < 0.05 · INP < 200 ms

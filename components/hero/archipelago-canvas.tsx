@@ -217,9 +217,13 @@ export default function ArchipelagoCanvas() {
       uRipple: { value: 0 },
       uReach: { value: MOUSE_REACH },
       uPush: { value: 1 },
-      // World-scaled point size (÷ depth ≈ 6.2): ~2.6px on desktop, ~2.1px
+      // World-scaled point size (÷ depth ≈ 6.2): ~3.9px on desktop, ~3.2px
       // on phones — present, but a background, not a feature.
-      uSize: { value: mobile ? 13 : 16 },
+      // Raised 50% from 16/13 on 2026-09-23 (Jan: bigger dots). The cost is
+      // fill rate — the shaded area grows with the square — so if a phone
+      // ever drops frames, lower the mobile number here rather than the
+      // point count, which the Archipelago note publishes as 30,000/12,000.
+      uSize: { value: mobile ? 20 : 24 },
       uPixelRatio: { value: renderer.getPixelRatio() },
       // Lower on phones: there the chain is centred, behind the copy.
       uOpacity: { value: (mobile ? 0.35 : 0.5) * levelRef.current },

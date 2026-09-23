@@ -113,6 +113,7 @@ and palette. Read `PLAN-V2.md` before changing layout or tokens.
 | R27 | Hosting → Cloudflare static assets for real security headers (`_headers` from `lib/csp.ts`) | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R27" — live on workers.dev; github.io redirects. Both Workers redeployed without the github.io origin (403 verified) |
 | R28 | Every old link redirects (user-site repo for `/Portfolio/` and the bare domain); Dependabot ignores `@types/node` majors | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R28" — major PRs #1–#4, #7–#10 held for an upgrade session |
 | R25 | Security follow-up — frame guard, per-IP daily visit cap, secret scanning + push protection | **done** 2026-09-17, `UPCOMING-FEATURES.md` "R25" — visits needs remote migration 0004 then deploy; Cloudflare 2FA + scoped token are Jan's |
+| R29 | Archipelago dots +50% — `uSize` 16→24 desktop, 13→20 phone | **done** 2026-09-24, `UPCOMING-FEATURES.md` "R29" — measured; real-Android frame time still unknown |
 | R9 | Hardening — budgets, keyboard + contrast pass (OG image done in `UPCOMING-FEATURES.md` Phase 1) | **partial** 2026-09-14: a11y 100, JS/CLS met; LCP 2.2–2.6s, Performance 70–79, real Android unmeasured. R9b profiled it: the floor is Next/React hydration, not site code — `UPCOMING-FEATURES.md` "R9", "R9b" |
 
 ### The shell
