@@ -18,10 +18,24 @@ import path from "node:path";
  */
 
 const CANDIDATES = ["avatar.webp", "avatar.jpg", "avatar.jpeg", "avatar.png"];
+const DARK = "avatar-dark.webp";
+
+const exists = (file: string) =>
+  fs.existsSync(path.join(process.cwd(), "public", file));
+const withBase = (file: string) =>
+  `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/${file}`;
 
 export function avatarSrc(): string | null {
-  const file = CANDIDATES.find((f) =>
-    fs.existsSync(path.join(process.cwd(), "public", f)),
-  );
-  return file ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/${file}` : null;
+  const file = CANDIDATES.find(exists);
+  return file ? withBase(file) : null;
+}
+
+/**
+ * The dark-theme portrait — the same shot in a white hoodie, stacked over
+ * avatarSrc() and crossfaded by `.dark` (`.theme-img--*`, design/tokens.css).
+ * Both are written by scripts/media/avatar.mjs, which keeps them aligned.
+ * Without it the one photo serves both themes.
+ */
+export function avatarDarkSrc(): string | null {
+  return exists(DARK) ? withBase(DARK) : null;
 }

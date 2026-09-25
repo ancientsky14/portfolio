@@ -22,13 +22,20 @@ import { VerifiedBadge } from "./verified-badge";
  * The portrait is the rail's photo at 36px (`.avatar-mark`, design/tokens.css).
  * Below lg the rail is hidden, so without this Jan's face never appears on a
  * phone. When public/avatar.webp is absent, lib/avatar.ts returns null and
- * this falls back to the monogram, as the rail does.
+ * this falls back to the monogram. As in the rail, the dark theme
+ * crossfades to the white-hoodie photo.
  *
  * A Server Component; the search button and theme toggle are its only client
  * parts.
  */
 
-export function MobileBar({ avatarSrc }: { avatarSrc: string | null }) {
+export function MobileBar({
+  avatarSrc,
+  avatarDarkSrc,
+}: {
+  avatarSrc: string | null;
+  avatarDarkSrc: string | null;
+}) {
   const monogram = SITE.name
     .split(/\s+/)
     .filter(Boolean)
@@ -46,7 +53,24 @@ export function MobileBar({ avatarSrc }: { avatarSrc: string | null }) {
             // off. alt="" because the link's own text is the name.
             <span aria-hidden="true" className="avatar-mark size-9 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={avatarSrc} alt="" width={512} height={512} />
+              <img
+                src={avatarSrc}
+                alt=""
+                width={512}
+                height={512}
+                className={avatarDarkSrc ? "theme-img--light" : undefined}
+              />
+              {avatarDarkSrc && (
+                // The white-hoodie photo for the dark theme — see rail.tsx.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarDarkSrc}
+                  alt=""
+                  width={512}
+                  height={512}
+                  className="theme-img--dark"
+                />
+              )}
             </span>
           ) : (
             <span

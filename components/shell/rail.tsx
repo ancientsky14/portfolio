@@ -36,14 +36,21 @@ import { VisitCount } from "./visit-count";
  *     A real number or none: until it loads, or if it cannot, the line
  *     reads just the handle.
  *
- * `avatarSrc` is resolved at build time by lib/avatar.ts. Hidden below `lg`;
- * components/shell/mobile-bar.tsx covers that.
+ * `avatarSrc` and `avatarDarkSrc` (the white-hoodie photo the dark theme
+ * crossfades to) are resolved at build time by lib/avatar.ts. Hidden below
+ * `lg`; components/shell/mobile-bar.tsx covers that.
  */
 
 const ROUND =
   "grid size-11 place-items-center rounded-full border border-line bg-surface text-text shadow-soft transition-colors hover:border-accent hover:text-accent";
 
-export function Rail({ avatarSrc }: { avatarSrc: string | null }) {
+export function Rail({
+  avatarSrc,
+  avatarDarkSrc,
+}: {
+  avatarSrc: string | null;
+  avatarDarkSrc: string | null;
+}) {
   const pathname = usePathname();
 
   return (
@@ -85,8 +92,24 @@ export function Rail({ avatarSrc }: { avatarSrc: string | null }) {
                     alt=""
                     width={512}
                     height={512}
-                    className="portrait__img"
+                    className={cn(
+                      "portrait__img",
+                      avatarDarkSrc && "theme-img--light",
+                    )}
                   />
+                  {avatarDarkSrc && (
+                    // The same shot in a white hoodie for the dark theme,
+                    // crossfaded in by `.dark` (`.theme-img--*`). Aligned
+                    // with the one above by scripts/media/avatar.mjs.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarDarkSrc}
+                      alt=""
+                      width={512}
+                      height={512}
+                      className="portrait__img theme-img--dark"
+                    />
+                  )}
                 </span>
               </span>
             ) : (

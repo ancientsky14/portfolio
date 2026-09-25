@@ -12,7 +12,7 @@ import { ScrollProgress } from "@/components/ui/scroll-progress";
 import { SITE } from "@/lib/site";
 import { contentSecurityPolicy } from "@/lib/csp";
 import { INTRO } from "@/lib/motion";
-import { avatarSrc } from "@/lib/avatar";
+import { avatarDarkSrc, avatarSrc } from "@/lib/avatar";
 import { openGraphFor } from "@/lib/og";
 import { personLd } from "@/lib/structured-data";
 import { JsonLd } from "@/components/site/json-ld";
@@ -95,6 +95,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const avatar = avatarSrc();
+  const avatarDark = avatarDarkSrc();
 
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
@@ -160,8 +161,8 @@ export default function RootLayout({
           data-showcase-dim
           className="flex min-h-dvh flex-col lg:h-dvh lg:min-h-0 lg:flex-row lg:overflow-hidden"
         >
-          <MobileBar avatarSrc={avatar} />
-          <Rail avatarSrc={avatar} />
+          <MobileBar avatarSrc={avatar} avatarDarkSrc={avatarDark} />
+          <Rail avatarSrc={avatar} avatarDarkSrc={avatarDark} />
 
           <div
             id="panel"

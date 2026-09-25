@@ -928,6 +928,7 @@ html.is-intro [data-intro="tabbar"] {
    ring and fill keep the transparent cutout from floating on the bar in
    either theme. */
 .avatar-mark {
+  position: relative;
   overflow: hidden;
   border-radius: 50%;
   background: var(--accent-soft);
@@ -939,6 +940,44 @@ html.is-intro [data-intro="tabbar"] {
   object-fit: cover;
   transform: scale(1.3);
   transform-origin: 50% 0;
+}
+.avatar-mark > img + img {
+  position: absolute;
+  inset: 0;
+}
+
+/* The portrait in both themes — rail and mobile bar (Jan, 2026-09-25). The
+   dark theme wears the same shot in a white hoodie: public/avatar-dark.webp,
+   aligned with public/avatar.webp by scripts/media/avatar.mjs and stacked on
+   top of it. Two photos rather than a filter: invert() would turn the face
+   and hair too.
+
+   Only the top (dark) photo fades. The light one sits at full strength
+   underneath while it does, and drops out only once the fade is over —
+   crossfading both would thin the figure to ~75% mid-way, and leaving both
+   on at rest would print the black hoodie's edge around the white one. The
+   boot script sets `.dark` before first paint, so a dark page loads on the
+   right photo with no fade. Reduced motion: the swap is instant. */
+.theme-img--dark {
+  opacity: 0;
+  transition: opacity 0.45s var(--ease-out);
+}
+.dark .theme-img--dark {
+  opacity: 1;
+}
+.theme-img--light {
+  transition: opacity 0s;
+}
+.dark .theme-img--light {
+  opacity: 0;
+  transition: opacity 0s 0.45s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-img--dark,
+  .theme-img--light,
+  .dark .theme-img--light {
+    transition: none;
+  }
 }
 
 /* ── Tool marks — brand colours, home marquee only ────────────────
