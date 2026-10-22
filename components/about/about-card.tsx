@@ -61,7 +61,7 @@ function Fallback({ bySlug }: { bySlug: Map<string, WorkDoc> }) {
         shipped {w("mgb-ebudget", "a Windows desktop app")} with signed
         auto-updates, {w("santol-lmis", "a web platform")} with a role-based
         CMS across three surfaces, and{" "}
-        {w("mgb-region-1-etracker", "a tracking portal")} with a full audit
+        {w("mgb-region-1-etracker", "a financial records portal")} with a full audit
         trail &mdash; and I&rsquo;m building{" "}
         {w("sentro", "an open-source multi-site platform")}.
       </p>

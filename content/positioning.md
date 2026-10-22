@@ -52,10 +52,10 @@ Lead with what was **engineered**, not who bought it.
 | 1 | eBudget | A Windows desktop app — Tauri + Rust — with one shared cloud database and signed auto-updates (in testing) |
 | 2 | LMIS | A public portal, a role-based CMS and a staff intranet, three deployments over one data model |
 | 3 | SENTRO | An open-source multi-site platform with server-enforced tenant isolation (in development) |
-| 4 | eTracker | A tracking portal with a full audit trail, shipped as a container through CI |
+| 4 | MGBR1-FIRMS | A financial records portal with a full audit trail, shipped as a container through CI |
 
 Client names go through `displayClient()`. Jan cleared MGB RO1 (eBudget,
-eTracker) and Santol (LMIS) for naming on 2026-09-11, so those three case
+MGBR1-FIRMS) and Santol (LMIS) for naming on 2026-09-11, so those three case
 studies carry `clientCleared: true`. Any new client starts at `false`.
 
 ---

@@ -130,7 +130,7 @@ export const SERVICES: Service[] = [
       "Shipped as a container",
     ],
     href: "/work/mgb-region-1-etracker",
-    receipt: "eTracker case study",
+    receipt: "MGBR1-FIRMS case study",
   },
   {
     name: "Maintenance & updates",

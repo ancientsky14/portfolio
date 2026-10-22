@@ -23,7 +23,7 @@ Open to projects and full-time roles.
 
 ## Selected work
 
-I was the sole developer on eBudget, LMIS and eTracker, covering design, build,
+I was the sole developer on eBudget, LMIS and MGBR1-FIRMS, covering design, build,
 deployment and maintenance. On SENTRO I'm the architect and developer. Clients
 are named with their permission.
 
@@ -32,7 +32,7 @@ are named with their permission.
 | [**eBudget**](https://portfolio.ancientsky14.workers.dev/work/mgb-ebudget/) — MGB RO1 eBudget & Accounting System | Desktop | In testing | Tauri 2, Rust, React 19, TypeScript, SQLite → PostgreSQL |
 | [**LMIS**](https://portfolio.ancientsky14.workers.dev/work/santol-lmis/) — Legislative Management & Information System | Web | In production | Next.js 16, TypeScript, Supabase, PostgreSQL, Cloudflare Workers |
 | [**SENTRO**](https://portfolio.ancientsky14.workers.dev/work/sentro/) — open-source e-governance platform | Platform | In development | React 19, TypeScript, Vite, PocketBase, Docker |
-| [**eTracker**](https://portfolio.ancientsky14.workers.dev/work/mgb-region-1-etracker/) — MGBR1 Disbursement Tracking System | Web | In use | Next.js 16, TypeScript, Supabase, PostgreSQL, Docker |
+| [**MGBR1-FIRMS**](https://portfolio.ancientsky14.workers.dev/work/mgb-region-1-etracker/) — Financial Information and Records Management System | Web | In use | Next.js 16, TypeScript, Supabase, PostgreSQL, Docker |
 
 - **eBudget** is a Windows desktop app for budget execution and accounting
   (Mines and Geosciences Bureau, Regional Office I). It covers allotments,
@@ -49,7 +49,7 @@ are named with their permission.
   far: records, case tracking, finance, role-based access, and cloud
   multi-tenancy with isolation enforced on the server. Next: a sync engine for
   offline barangay nodes.
-- **eTracker** is a document-tracking portal for MGB Regional Office I. It has
+- **MGBR1-FIRMS** is the Financial Information and Records Management System for MGB Regional Office I. It has
   a full audit trail, Supabase auth, bot protection and row-level security,
   and ships as a container through GitHub Actions. It replaced routing on
   spreadsheets and paper.

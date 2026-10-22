@@ -877,29 +877,33 @@ html.is-intro [data-intro="tabbar"] {
   transform: translateZ(-40px) scale(1.06);
   pointer-events: none;
 }
-.portrait__img {
+.portrait__figure {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  /* The mask is larger than the image so the photo keeps its scale while
+     the lower edge fades along a full circle. */
+  -webkit-mask-image: radial-gradient(
+    circle closest-side at center,
+    #000 78%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    circle closest-side at center,
+    #000 78%,
+    transparent 100%
+  );
+}
+.portrait__img {
+  position: absolute;
+  inset: 13.2% 6.6% 0;
+  width: 86.8%;
+  height: 86.8%;
   object-fit: contain;
   object-position: center bottom;
   transform: translateZ(24px);
   filter: drop-shadow(
     0 14px 22px color-mix(in oklab, var(--text) 30%, transparent)
   );
-  /* Two fades, intersected. The crop runs to below the shoulders, and the
-     square cuts the shirt at both sides and the bottom — edges that read
-     hard on the dark theme. One fade takes the sides to transparent, the
-     other the bottom. The head is centred, so neither touches it. */
-  -webkit-mask-image:
-    linear-gradient(to right, transparent, #000 24%, #000 76%, transparent),
-    linear-gradient(to bottom, #000 76%, transparent 100%);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(to right, transparent, #000 24%, #000 76%, transparent),
-    linear-gradient(to bottom, #000 76%, transparent 100%);
-  mask-composite: intersect;
 }
 .dark .portrait__glow {
   background: radial-gradient(

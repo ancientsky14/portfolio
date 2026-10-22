@@ -1400,7 +1400,7 @@ GitHub Pages won't serve a private repo on a free account, so the live site
 would go down. The alternatives are GitHub Pro, or moving to Cloudflare Pages,
 which serves private repos free and which Jan already uses for Workers. If he
 changes his mind, plan that as its own task. The repo holds no client source
-(eBudget, eTracker, LMIS and SENTRO are private) and no secrets (Worker secrets
+(eBudget, MGBR1-FIRMS, LMIS and SENTRO are private) and no secrets (Worker secrets
 live in Cloudflare).
 
 **`mgb-ebudget-releases` must stay public regardless:** it holds installers
@@ -1541,7 +1541,7 @@ changed. If it ever comes back, start here:
   `lib/security/environment.ts`). That refusal is a deliberate security fix:
   the fallback once made the admin panel open. It also shows no data. A real
   LMIS demo needs its own database, and admin roles require MFA.
-- **eTracker** would need its own Supabase project, a fictional seed, email
+- **MGBR1-FIRMS** would need its own Supabase project, a fictional seed, email
   and AI calls disabled, and a daily reset. Supabase's free plan allows
   2 active projects per organization.
 - **eBudget** is the cheap one. Every frontend call goes through one `invoke`

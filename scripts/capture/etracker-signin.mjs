@@ -1,5 +1,5 @@
 /**
- * eTracker — the production sign-in page, and nothing past it.
+ * MGBR1-FIRMS — the production sign-in page, and nothing past it.
  *
  * The one reviewed exception to "local instances only" (scripts/capture/
  * lib.mjs): the live sign-in screen has no records behind it, and it is the

@@ -80,42 +80,44 @@ export function Rail({
               // parallax from page-motion.tsx; the stage is what tilts.
               <span
                 data-tilt
-                className="portrait size-[clamp(132px,21vh,190px)]"
+                className="portrait size-[clamp(175px,30vh,265px)]"
               >
                 <span className="portrait__stage">
                   <span aria-hidden="true" className="portrait__glow" />
-                  {/* A plain <img>: a static export ships with image
-                      optimisation off. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={avatarSrc}
-                    alt=""
-                    width={512}
-                    height={512}
-                    className={cn(
-                      "portrait__img",
-                      avatarDarkSrc && "theme-img--light",
-                    )}
-                  />
-                  {avatarDarkSrc && (
-                    // The same shot in a white hoodie for the dark theme,
-                    // crossfaded in by `.dark` (`.theme-img--*`). Aligned
-                    // with the one above by scripts/media/avatar.mjs.
-                    // eslint-disable-next-line @next/next/no-img-element
+                  <span className="portrait__figure">
+                    {/* A plain <img>: a static export ships with image
+                        optimisation off. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={avatarDarkSrc}
+                      src={avatarSrc}
                       alt=""
                       width={512}
                       height={512}
-                      className="portrait__img theme-img--dark"
+                      className={cn(
+                        "portrait__img",
+                        avatarDarkSrc && "theme-img--light",
+                      )}
                     />
-                  )}
+                    {avatarDarkSrc && (
+                      // The same shot in a white hoodie for the dark theme,
+                      // crossfaded in by `.dark` (`.theme-img--*`). Aligned
+                      // with the one above by scripts/media/avatar.mjs.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarDarkSrc}
+                        alt=""
+                        width={512}
+                        height={512}
+                        className="portrait__img theme-img--dark"
+                      />
+                    )}
+                  </span>
                 </span>
               </span>
             ) : (
               <span
                 aria-hidden="true"
-                className="grid size-[clamp(132px,21vh,190px)] place-items-center rounded-full border border-line bg-accent-soft font-display text-3xl font-bold tracking-tight text-accent shadow-soft"
+                className="grid size-[clamp(175px,30vh,265px)] place-items-center rounded-full border border-line bg-accent-soft font-display text-3xl font-bold tracking-tight text-accent shadow-soft"
               >
                 JLR
               </span>

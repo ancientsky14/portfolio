@@ -7,8 +7,8 @@ any client including government — but government is *where he started*, not
 the niche. Lead with what was engineered, never with who bought it.
 
 Four case studies in `content/work/`, in this order: eBudget (Tauri desktop
-app), LMIS (legislative portal + CMS), SENTRO (open-source platform), eTracker
-(tracking portal). Facts in each were checked against the sibling repos in
+app), LMIS (legislative portal + CMS), SENTRO (open-source platform), MGBR1-FIRMS
+(financial information and records management portal). Facts in each were checked against the sibling repos in
 `D:\Dev\AI\Projects` on 2026-09-10.
 
 Next.js 16 · TypeScript · Tailwind v4 · GSAP · Three.js (Phase 5).
@@ -516,7 +516,7 @@ claim it works offline).
 
 Resolved 2026-09-11 by Jan: headline signed off; contact email and
 availability wording confirmed; MGB RO1 and Santol may be named
-(`clientCleared: true` on eBudget, eTracker, LMIS); eBudget does **not** work
+(`clientCleared: true` on eBudget, MGBR1-FIRMS, LMIS); eBudget does **not** work
 offline since the Postgres move (metric cut — never claim it).
 
 Changed later on 2026-09-11 by Jan: the ownership step and the "working

@@ -1,5 +1,5 @@
 /**
- * eTracker (MGBR1 Disbursement Tracking System) — screenshots and a screen
+ * MGBR1-FIRMS (Financial Information and Records Management System) — screenshots and a screen
  * recording for /work/mgb-region-1-etracker, from the LIVE system, on Jan's
  * instruction (2026-09-11), with Jan signing in himself.
  *
@@ -120,7 +120,7 @@ async function signIn(browser) {
   const ctx = await browser.newContext({ viewport: VIEWPORT });
   const page = await ctx.newPage();
   await page.goto(`${PROD}/login`, { waitUntil: "domcontentloaded", timeout: 90000 });
-  console.log("\n  ▶ Sign in to eTracker in the browser window that just opened");
+console.log("\n  ▶ Sign in to MGBR1-FIRMS in the browser window that just opened");
   console.log("    (and complete the bot check). Nothing you type is recorded.");
   console.log("    Waiting up to 10 minutes…\n");
   const deadline = Date.now() + 10 * 60 * 1000;
@@ -167,7 +167,7 @@ try {
   });
   const page = await context.newPage();
 
-  console.log(`eTracker  ${PROD}`);
+console.log(`MGBR1-FIRMS  ${PROD}`);
 
   // 1 — the public landing page, signed out. It is also the poster: the
   // first frame of the recording.
